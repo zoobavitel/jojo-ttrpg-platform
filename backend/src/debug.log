@@ -1275,3 +1275,29 @@ django.db.utils.OperationalError: no such column: characters_ability.type
 [INFO] 2025-05-14 04:35:23,025 django.utils.autoreload - Watching for file changes with StatReloader
 [INFO] 2025-05-14 04:36:35,819 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/views.py changed, reloading.
 [INFO] 2025-05-14 04:36:36,160 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-05-20 05:54:17,619 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-05-20 23:34:06,765 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2025-05-20 23:37:17,114 django.request - Not Found: /favicon.ico
+[INFO] 2025-05-20 23:41:11,671 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-05-20 23:44:42,739 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-05-20 23:45:01,314 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2025-05-20 23:53:38,367 django.request - Bad Request: /api/accounts/login/
+[INFO] 2025-05-21 00:26:43,611 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/app/settings.py changed, reloading.
+[INFO] 2025-05-21 00:26:44,269 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-05-21 00:26:55,715 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/app/settings.py changed, reloading.
+[INFO] 2025-05-21 00:26:56,327 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-05-21 00:27:37,153 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/app/settings.py changed, reloading.
+[INFO] 2025-05-21 00:27:37,501 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-05-28 03:01:58,892 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2025-05-28 04:51:10,799 django.request - Bad Request: /api/characters/
+[WARNING] 2025-05-28 04:51:11,600 django.request - Bad Request: /api/characters/
+[WARNING] 2025-05-28 04:51:12,169 django.request - Bad Request: /api/characters/
+[WARNING] 2025-05-28 04:51:12,963 django.request - Bad Request: /api/characters/
+[INFO] 2025-05-28 05:52:22,995 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-05-28 08:44:32,141 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-05-28 13:24:16,296 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-05-29 04:48:04,650 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-05-29 21:33:20,433 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-05-29 21:40:22,146 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-05-29 21:57:59,696 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-05-29 22:25:05,312 django.utils.autoreload - Watching for file changes with StatReloader
