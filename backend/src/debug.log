@@ -1347,3 +1347,14 @@ django.db.utils.OperationalError: no such column: characters_ability.type
 [WARNING] 2025-06-11 07:58:59,952 django.request - Not Found: /api/auth/user/
 [INFO] 2025-06-11 07:59:09,937 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/views.py changed, reloading.
 [INFO] 2025-06-11 07:59:10,267 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2025-06-11 08:18:13,691 django.request - Not Found: /api/auth/user/profile/
+[WARNING] 2025-06-11 08:18:13,738 django.request - Not Found: /api/auth/user/profile/
+[WARNING] 2025-06-11 08:31:28,945 django.request - Not Found: /api/auth/user/
+[WARNING] 2025-06-11 08:31:28,989 django.request - Not Found: /api/auth/user/
+[WARNING] 2025-06-11 08:34:30,070 django.request - Not Found: /api/auth/user/profile/
+[WARNING] 2025-06-11 08:34:30,076 django.request - Not Found: /api/auth/user/profile/
+[WARNING] 2025-06-11 08:34:37,397 django.request - Not Found: /api/api/abilities/
+[WARNING] 2025-06-11 08:34:37,444 django.request - Not Found: /api/api/abilities/
+[WARNING] 2025-06-11 08:38:16,323 django.request - Not Found: /api/auth/user/
+[WARNING] 2025-06-11 08:38:16,368 django.request - Not Found: /api/auth/user/
+[INFO] 2025-06-11 08:39:36,770 django.utils.autoreload - Watching for file changes with StatReloader
