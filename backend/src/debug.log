@@ -1301,3 +1301,49 @@ django.db.utils.OperationalError: no such column: characters_ability.type
 [INFO] 2025-05-29 21:40:22,146 django.utils.autoreload - Watching for file changes with StatReloader
 [INFO] 2025-05-29 21:57:59,696 django.utils.autoreload - Watching for file changes with StatReloader
 [INFO] 2025-05-29 22:25:05,312 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-06-10 22:27:43,388 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2025-06-10 22:31:48,113 django.request - Not Found: /favicon.ico
+[INFO] 2025-06-11 04:32:37,591 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2025-06-11 04:32:45,352 django.request - Forbidden: /api/hamon-abilities/
+[INFO] 2025-06-11 04:33:15,090 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/views.py changed, reloading.
+[INFO] 2025-06-11 04:33:15,469 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-06-11 04:39:54,838 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/views.py changed, reloading.
+[INFO] 2025-06-11 04:39:55,240 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2025-06-11 04:54:26,384 django.request - Forbidden: /api/hamon-abilities/
+[WARNING] 2025-06-11 04:54:26,395 django.request - Forbidden: /api/spin-abilities/
+[WARNING] 2025-06-11 04:54:26,405 django.request - Forbidden: /api/abilities/
+[WARNING] 2025-06-11 04:54:27,292 django.request - Forbidden: /api/hamon-abilities/
+[WARNING] 2025-06-11 04:54:27,301 django.request - Forbidden: /api/spin-abilities/
+[INFO] 2025-06-11 05:40:08,798 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/app/urls.py changed, reloading.
+[INFO] 2025-06-11 05:44:25,116 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-06-11 05:49:09,607 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-06-11 05:52:12,404 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-06-11 06:11:22,840 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-06-11 06:49:05,154 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/views.py changed, reloading.
+[INFO] 2025-06-11 06:49:05,481 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-06-11 06:49:38,728 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-06-11 06:50:11,731 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-06-11 06:52:04,395 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2025-06-11 06:53:40,135 django.request - Bad Request: /api/campaigns/
+[WARNING] 2025-06-11 06:54:38,807 django.request - Bad Request: /api/campaigns/
+[WARNING] 2025-06-11 06:54:39,522 django.request - Bad Request: /api/campaigns/
+[INFO] 2025-06-11 06:58:43,363 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-06-11 06:59:27,160 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/views.py changed, reloading.
+[INFO] 2025-06-11 06:59:27,500 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-06-11 06:59:51,829 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/app/urls.py changed, reloading.
+[INFO] 2025-06-11 06:59:52,178 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-06-11 06:59:59,391 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/app/urls.py changed, reloading.
+[INFO] 2025-06-11 06:59:59,733 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-06-11 07:04:08,825 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2025-06-11 07:11:07,874 django.request - Forbidden: /api/search/
+[WARNING] 2025-06-11 07:14:14,967 django.request - Forbidden: /api/abilities/
+[WARNING] 2025-06-11 07:14:21,012 django.request - Forbidden: /api/heritages/
+[WARNING] 2025-06-11 07:22:44,839 django.request - Not Found: /api/api/abilities/
+[WARNING] 2025-06-11 07:22:44,845 django.request - Not Found: /api/api/abilities/
+[WARNING] 2025-06-11 07:22:44,850 django.request - Not Found: /api/api/abilities/
+[WARNING] 2025-06-11 07:58:00,746 django.request - Not Found: /api/auth/user/
+[WARNING] 2025-06-11 07:58:00,792 django.request - Not Found: /api/auth/user/
+[WARNING] 2025-06-11 07:58:59,909 django.request - Not Found: /api/auth/user/
+[WARNING] 2025-06-11 07:58:59,952 django.request - Not Found: /api/auth/user/
+[INFO] 2025-06-11 07:59:09,937 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/views.py changed, reloading.
+[INFO] 2025-06-11 07:59:10,267 django.utils.autoreload - Watching for file changes with StatReloader
