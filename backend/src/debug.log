@@ -1886,3 +1886,20 @@ Traceback (most recent call last):
 django.db.utils.OperationalError: no such column: characters_campaign.wanted_stars
 [INFO] 2025-06-17 21:37:20,777 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/models.py changed, reloading.
 [INFO] 2025-06-17 21:37:21,336 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-06-17 21:44:45,083 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/models.py changed, reloading.
+[INFO] 2025-06-17 21:44:45,470 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-06-17 21:44:51,655 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/serializers.py changed, reloading.
+[INFO] 2025-06-17 21:44:52,078 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-06-17 21:47:36,606 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/serializers.py changed, reloading.
+[INFO] 2025-06-17 21:47:36,944 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-06-17 21:47:48,188 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/serializers.py changed, reloading.
+[INFO] 2025-06-17 21:47:48,566 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-06-17 22:08:47,749 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-06-17 22:29:05,583 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/views.py changed, reloading.
+[INFO] 2025-06-17 22:29:05,958 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-06-17 22:48:58,942 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/app/urls.py changed, reloading.
+[INFO] 2025-06-17 22:48:59,321 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-06-17 22:49:05,537 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/app/urls.py changed, reloading.
+[INFO] 2025-06-17 22:49:05,908 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-06-17 23:54:10,576 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/app/urls.py changed, reloading.
+[INFO] 2025-06-17 23:54:11,061 django.utils.autoreload - Watching for file changes with StatReloader
