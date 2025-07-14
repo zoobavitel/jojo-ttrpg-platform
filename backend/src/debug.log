@@ -2022,3 +2022,21 @@ django.db.utils.OperationalError: no such column: characters_campaign.wanted_sta
 [INFO] 2025-07-13 22:17:30,870 django.utils.autoreload - Watching for file changes with StatReloader
 [INFO] 2025-07-13 22:18:51,982 django.utils.autoreload - Watching for file changes with StatReloader
 [INFO] 2025-07-13 23:08:51,285 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2025-07-14 05:58:21,815 django.request - Not Found: /api//characters/
+[WARNING] 2025-07-14 05:58:21,830 django.request - Not Found: /api//characters/
+[WARNING] 2025-07-14 06:05:47,815 django.request - Not Found: /api//characters/
+[WARNING] 2025-07-14 06:10:09,393 django.request - Not Found: /api//characters/
+[WARNING] 2025-07-14 06:10:09,407 django.request - Not Found: /api//characters/
+[WARNING] 2025-07-14 06:12:17,545 django.request - Not Found: /api//accounts/login/
+[WARNING] 2025-07-14 06:12:27,072 django.request - Not Found: /api//accounts/login/
+[WARNING] 2025-07-14 06:16:28,914 django.request - Not Found: /api//accounts/login/
+[WARNING] 2025-07-14 06:17:41,663 django.request - Not Found: /api//accounts/login/
+[WARNING] 2025-07-14 06:19:39,486 django.request - Not Found: /api//accounts/login/
+[WARNING] 2025-07-14 06:20:04,294 django.request - Not Found: /api//accounts/login/
+[WARNING] 2025-07-14 06:20:20,613 django.request - Not Found: /api//accounts/signup/
+[WARNING] 2025-07-14 06:20:30,031 django.request - Not Found: /api//accounts/login/
+[WARNING] 2025-07-14 06:29:18,970 django.request - Not Found: /api//accounts/login/
+[WARNING] 2025-07-14 06:29:22,201 django.request - Not Found: /api//accounts/login/
+[INFO] 2025-07-14 06:29:33,164 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2025-07-14 06:29:52,332 django.request - Not Found: /api//characters/
+[WARNING] 2025-07-14 06:29:52,350 django.request - Not Found: /api//characters/
