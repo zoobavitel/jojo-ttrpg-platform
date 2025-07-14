@@ -2014,3 +2014,11 @@ django.db.utils.OperationalError: no such column: characters_campaign.wanted_sta
 [INFO] 2025-07-04 01:30:05,677 django.utils.autoreload - Watching for file changes with StatReloader
 [INFO] 2025-07-04 01:30:30,238 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/models.py changed, reloading.
 [INFO] 2025-07-04 01:30:30,737 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-07-13 20:31:00,685 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-07-13 20:32:23,628 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-07-13 20:43:54,420 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/serializers.py changed, reloading.
+[INFO] 2025-07-13 21:12:09,197 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-07-13 21:14:49,276 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-07-13 22:17:30,870 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-07-13 22:18:51,982 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2025-07-13 23:08:51,285 django.utils.autoreload - Watching for file changes with StatReloader
