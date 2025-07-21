@@ -2040,3 +2040,24 @@ django.db.utils.OperationalError: no such column: characters_campaign.wanted_sta
 [INFO] 2025-07-14 06:29:33,164 django.utils.autoreload - Watching for file changes with StatReloader
 [WARNING] 2025-07-14 06:29:52,332 django.request - Not Found: /api//characters/
 [WARNING] 2025-07-14 06:29:52,350 django.request - Not Found: /api//characters/
+[INFO] 2025-07-21 02:18:21,993 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2025-07-21 02:18:28,978 django.request - Not Found: /api//characters/
+[WARNING] 2025-07-21 02:18:28,988 django.request - Not Found: /api//characters/
+[WARNING] 2025-07-21 02:18:47,797 django.request - Not Found: /api//characters/
+[WARNING] 2025-07-21 02:18:49,252 django.request - Not Found: /api//characters/
+[WARNING] 2025-07-21 22:07:19,223 django.request - Unsupported Media Type: /api/crews/1/
+[WARNING] 2025-07-21 22:07:19,691 django.request - Unsupported Media Type: /api/crews/1/propose-name/
+[WARNING] 2025-07-21 22:07:19,694 django.request - Unsupported Media Type: /api/crews/1/
+[WARNING] 2025-07-21 22:07:20,160 django.request - Unsupported Media Type: /api/crews/1/propose-name/
+[WARNING] 2025-07-21 22:07:20,315 django.request - Not Found: /api/crews/1/approve-name/
+[WARNING] 2025-07-21 22:07:20,936 django.request - Not Found: /api/crews/1/propose-name/
+[WARNING] 2025-07-21 22:07:21,556 django.request - Unsupported Media Type: /api/crews/1/propose-name/
+[WARNING] 2025-07-21 22:07:21,559 django.request - Forbidden: /api/crews/1/approve-name/
+[WARNING] 2025-07-21 22:07:22,024 django.request - Unsupported Media Type: /api/crews/1/propose-name/
+[WARNING] 2025-07-21 22:07:22,490 django.request - Unsupported Media Type: /api/crews/1/propose-name/
+[WARNING] 2025-07-21 22:07:22,494 django.request - Forbidden: /api/crews/1/approve-name/
+[WARNING] 2025-07-21 22:07:22,961 django.request - Forbidden: /api/crews/1/approve-name/
+[WARNING] 2025-07-21 22:07:23,427 django.request - Unsupported Media Type: /api/crews/1/propose-name/
+[WARNING] 2025-07-21 22:07:23,431 django.request - Forbidden: /api/crews/1/approve-name/
+[WARNING] 2025-07-21 22:07:23,898 django.request - Unsupported Media Type: /api/crews/1/
+[WARNING] 2025-07-21 22:07:24,363 django.request - Unsupported Media Type: /api/crews/1/propose-name/
