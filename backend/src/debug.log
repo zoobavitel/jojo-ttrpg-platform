@@ -2061,3 +2061,4 @@ django.db.utils.OperationalError: no such column: characters_campaign.wanted_sta
 [WARNING] 2025-07-21 22:07:23,431 django.request - Forbidden: /api/crews/1/approve-name/
 [WARNING] 2025-07-21 22:07:23,898 django.request - Unsupported Media Type: /api/crews/1/
 [WARNING] 2025-07-21 22:07:24,363 django.request - Unsupported Media Type: /api/crews/1/propose-name/
+[INFO] 2025-07-21 22:25:29,703 django.utils.autoreload - Watching for file changes with StatReloader
