@@ -17,6 +17,25 @@ The primary purpose of this directory is to:
 *   `package.json`, `package-lock.json`: Node.js related files, likely for development tools or scripts specific to the backend (e.g., linting, formatting, or build steps that involve Node.js).
 *   `.env.example`: An example file for environment variables, typically used for sensitive information like database credentials or API keys.
 *   `README.md`: This file, providing an overview of the backend.
+*   `docs/`: Detailed documentation for backend features and systems.
+
+## Documentation
+
+### Core Systems
+
+*   **[Configurable Game Rules System](docs/CONFIGURABLE_GAME_RULES.md)**: Comprehensive documentation of the flexible game rules system that allows admins and GMs to customize all game mechanics without code changes.
+*   **[Admin Quick Reference](docs/ADMIN_QUICK_REFERENCE.md)**: Quick reference guide for the Django admin interface, including game rules configuration.
+*   **[Admin Templates](docs/ADMIN_TEMPLATES.md)**: Documentation for custom Django admin templates with enhanced user experience.
+*   **[Changelog](docs/CHANGELOG.md)**: Complete changelog documenting all backend features and changes.
+
+### Key Features
+
+*   **Global vs Campaign-Specific Rules**: System administrators can set global defaults, while GMs can create campaign-specific overrides
+*   **Stand Coin Configuration**: Fully configurable Stand Coin grade point costs and stat properties
+*   **Character Creation Rules**: Configurable starting points, abilities, and action dice
+*   **Advancement XP Costs**: Adjustable XP costs for all advancement types
+*   **Admin Interface**: User-friendly Django admin interface with proper access controls
+*   **Comprehensive Documentation**: Detailed guides for all new features and systems
 
 ## Code Quality and Structure
 

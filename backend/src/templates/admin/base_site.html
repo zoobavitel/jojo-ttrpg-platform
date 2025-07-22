@@ -1,0 +1,165 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('1-800-BIZARRE Admin') }}{% endblock %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #34495e;
+            --accent: #3498db;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --error: #e74c3c;
+        }
+        
+        #header {
+            background: var(--primary);
+            color: white;
+        }
+        
+        #branding h1 {
+            color: white;
+        }
+        
+        .module h2, .module caption, .inline-group h2 {
+            background: var(--secondary);
+            color: white;
+        }
+        
+        div.breadcrumbs {
+            background: var(--secondary);
+            color: white;
+        }
+        
+        div.breadcrumbs a {
+            color: #bdc3c7;
+        }
+        
+        div.breadcrumbs a:focus, div.breadcrumbs a:hover {
+            color: white;
+        }
+        
+        .button, input[type=submit], input[type=button], .submit-row input, a.button {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .button:hover, input[type=submit]:hover, input[type=button]:hover {
+            background: #2980b9;
+        }
+        
+        .button.default, input[type=submit].default, .submit-row input.default {
+            background: var(--success);
+        }
+        
+        .button.default:hover, input[type=submit].default:hover {
+            background: #229954;
+        }
+        
+        .deletelink {
+            background: var(--error);
+        }
+        
+        .deletelink:hover {
+            background: #c0392b;
+        }
+        
+        .help-box {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .help-box h3 {
+            margin-top: 0;
+            color: #0066cc;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .warning-box h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+        
+        .json-help {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 5px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .fieldset-description {
+            background: #f8f9fa;
+            border-left: 4px solid var(--accent);
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .fieldset-description p {
+            margin: 0;
+            color: #495057;
+        }
+        
+        /* Game Rules specific styling */
+        .gamerules-help {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .gamerules-help h2 {
+            margin-top: 0;
+            color: white;
+            font-size: 1.5em;
+        }
+        
+        .gamerules-help ul {
+            margin-bottom: 0;
+        }
+        
+        .gamerules-help li {
+            margin-bottom: 8px;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .help-box, .warning-box, .gamerules-help {
+                padding: 10px;
+                margin-bottom: 15px;
+            }
+            
+            .json-help {
+                font-size: 11px;
+                padding: 8px;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block branding %}
+    <h1 id="site-name">
+        <a href="{% url 'admin:index' %}">
+            🎲 1-800-BIZARRE Game Rules Admin
+        </a>
+    </h1>
+{% endblock %}
+
+{% block nav-global %}{% endblock %} 

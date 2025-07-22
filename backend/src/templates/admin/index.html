@@ -1,0 +1,91 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" type="text/css" href="{% static "admin/css/dashboard.css" %}">{% endblock %}
+
+{% block coltype %}colMS{% endblock %}
+
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+
+{% block breadcrumbs %}{% endblock %}
+
+{% block nav-sidebar %}{% include "admin/nav_sidebar.html" %}{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+    
+    {% if user.is_superuser %}
+    <div class="module">
+        <h2>🎲 Game Rules Management</h2>
+        <div class="description">
+            <p><strong>Welcome to the 1-800-BIZARRE Game Rules Admin!</strong></p>
+            <p>As a superuser, you can:</p>
+            <ul>
+                <li>Configure global game rules that apply to all campaigns</li>
+                <li>View and edit campaign-specific rules</li>
+                <li>Manage all game mechanics without code changes</li>
+            </ul>
+            <p><a href="{% url 'admin:characters_gamerules_changelist' %}" class="button">Manage Game Rules</a></p>
+        </div>
+    </div>
+    {% elif user.is_staff %}
+    <div class="module">
+        <h2>🎯 Campaign Rules Management</h2>
+        <div class="description">
+            <p><strong>Welcome to the 1-800-BIZARRE Game Rules Admin!</strong></p>
+            <p>As a Game Master, you can:</p>
+            <ul>
+                <li>View global rules (read-only)</li>
+                <li>Create campaign-specific rules for your campaigns</li>
+                <li>Customize game mechanics for your specific campaign</li>
+            </ul>
+            <p><a href="{% url 'admin:characters_gamerules_changelist' %}" class="button">Manage Game Rules</a></p>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="module">
+        <h2>📚 Quick Links</h2>
+        <div class="description">
+            <ul>
+                <li><a href="{% url 'admin:characters_character_changelist' %}">Manage Characters</a></li>
+                <li><a href="{% url 'admin:characters_campaign_changelist' %}">Manage Campaigns</a></li>
+                <li><a href="{% url 'admin:characters_stand_changelist' %}">Manage Stands</a></li>
+                <li><a href="{% url 'admin:characters_npc_changelist' %}">Manage NPCs</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block sidebar %}
+<div id="content-related">
+    <div class="module" id="recent-actions-module">
+        <h2>{% translate 'Recent actions' %}</h2>
+        {% load log %}
+        {% get_admin_log 10 as admin_log for_user user %}
+        {% if not admin_log %}
+        <p>{% translate 'None available' %}</p>
+        {% else %}
+        <ul class="actionlist">
+        {% for entry in admin_log %}
+        <li class="{% if entry.is_addition %}addlink{% endif %}{% if entry.is_change %}changelink{% endif %}{% if entry.is_deletion %}deletelink{% endif %}">
+            {% if entry.is_deletion or not entry.get_admin_url %}
+                {{ entry.object_repr }}
+            {% else %}
+                <a href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
+            {% endif %}
+            <br>
+            {% if entry.content_type %}
+                <span class="mini quiet">{% filter capfirst %}{{ entry.content_type.name }}{% endfilter %}</span>
+            {% else %}
+                <span class="mini quiet">{% translate 'Unknown content' %}</span>
+            {% endif %}
+        </li>
+        {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

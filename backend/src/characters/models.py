@@ -6,6 +6,398 @@ from django.dispatch import receiver
 import json
 
 
+class GameRules(models.Model):
+    """Configurable game rules that GMs and admins can modify."""
+    
+    # Character Creation Rules
+    level_1_stand_coin_points = models.IntegerField(default=10, help_text="Total Stand Coin points for level 1 characters")
+    level_1_action_dice = models.IntegerField(default=7, help_text="Total action dice for level 1 characters")
+    max_dice_per_action = models.IntegerField(default=4, help_text="Maximum dice per action rating")
+    max_dice_per_action_level_1 = models.IntegerField(default=2, help_text="Maximum dice per action at level 1")
+    
+    # Advancement XP Costs
+    xp_cost_action_dice = models.IntegerField(default=5, help_text="XP cost per action die gained")
+    xp_cost_stand_coin_point = models.IntegerField(default=10, help_text="XP cost per Stand Coin point gained")
+    xp_cost_heritage_point = models.IntegerField(default=5, help_text="XP cost per heritage point gained")
+    
+    # Default Abilities and XP Tracks
+    default_starting_abilities = models.IntegerField(default=3, help_text="Default number of abilities for new characters")
+    abilities_per_a_grade = models.IntegerField(default=2, help_text="Additional abilities gained per A-grade Stand stat")
+    default_xp_track_size = models.IntegerField(default=8, help_text="Default XP track size for all categories")
+    
+    # XP Track Sizes (JSON field for flexible configuration)
+    xp_track_sizes = models.JSONField(default=dict, help_text="XP track sizes for different categories")
+    
+    # Stand Coin Grade Point Costs (JSON field for flexible configuration)
+    stand_coin_grade_points = models.JSONField(default=dict, help_text="Point costs for each Stand Coin grade (S, A, B, C, D, F)")
+    
+    # Stand Coin Stat Properties (JSON field for flexible configuration)
+    stand_coin_stat_properties = models.JSONField(default=dict, help_text="Properties for each Stand Coin stat grade")
+    
+    # Stress Rules
+    stress_rules = models.JSONField(default=dict, help_text="Stress rules and modifications")
+    
+    # Campaign-specific rules
+    campaign = models.ForeignKey('Campaign', on_delete=models.CASCADE, null=True, blank=True, related_name='game_rules')
+    
+    # Global vs Campaign-specific
+    is_global = models.BooleanField(default=True, help_text="If True, these are global rules. If False, campaign-specific.")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ('campaign', 'is_global')
+        verbose_name_plural = "Game Rules"
+    
+    def __str__(self):
+        if self.is_global:
+            return "Global Game Rules"
+        return f"Game Rules - {self.campaign.name}"
+    
+    def get_default_grade_points(self):
+        """Get default point values for each grade if none are set."""
+        return {
+            'S': 5, 'A': 4, 'B': 3, 'C': 2, 'D': 1, 'F': 0
+        }
+    
+    def get_default_stand_coin_properties(self):
+        """Get default Stand Coin stat properties if none are set."""
+        return {
+            'S': {
+                'stress': 13,
+                'description': 'Exceptional',
+                'power': {
+                    'harm_level': 4,
+                    'force': 4,
+                    'position_reduction': True,
+                    'description': 'Level 4 harm, can force position to be lowered by one (desperate to risky, risky to controlled)'
+                },
+                'speed': {
+                    'movement': 200,
+                    'initiative_order': 1,
+                    'actions_per_turn': 4,
+                    'dash_cost': 0,
+                    'description': '200 ft movement, acts before everyone, 4 action/turn'
+                },
+                'range': {
+                    'base_range': 'unlimited',
+                    'extended_range': 'unlimited',
+                    'range_penalty': 0,
+                    'description': 'Unlimited range, no range penalties'
+                },
+                'durability': {
+                    'stress_bonus': 4,
+                    'armor_charges': 3,
+                    'resistance_bonus': 2,
+                    'description': '+4 Stress boxes, 3 Armor charges. Resistance rolls can reduce harm by 2 levels instead of 1'
+                },
+                'precision': {
+                    'success_threshold': 6,
+                    'critical_success': 'double_6s_and_5s',
+                    'critical_fail': 'none',
+                    'description': 'Double 6s and double 5s count as critical success'
+                },
+                'development': {
+                    'xp_bonus': 5,
+                    'temporary_ability_cost': 0,
+                    'temporary_ability_duration': 'permanent',
+                    'description': 'Earn +5 XP at the end of each session'
+                }
+            },
+            'A': {
+                'stress': 12,
+                'description': 'Elite',
+                'power': {
+                    'harm_level': 4,
+                    'force': 4,
+                    'position_reduction': False,
+                    'description': 'Level 4 harm'
+                },
+                'speed': {
+                    'movement': 60,
+                    'extended_movement': 120,
+                    'initiative_order': 2,
+                    'actions_per_turn': 3,
+                    'dash_cost': 0,
+                    'description': '60(120) ft movement, acts before B, C, D, F, 3 action/turn, push yourself to dash'
+                },
+                'range': {
+                    'base_range': 100,
+                    'extended_range': 200,
+                    'range_penalty': 0,
+                    'description': '100(200) ft range, push yourself to extend'
+                },
+                'durability': {
+                    'stress_bonus': 3,
+                    'armor_charges': 3,
+                    'resistance_bonus': 1,
+                    'description': '+3 Stress boxes, 3 Armor charges'
+                },
+                'precision': {
+                    'success_threshold': 5,
+                    'critical_success': '5s',
+                    'critical_fail': 'none',
+                    'description': '5 counts as success'
+                },
+                'development': {
+                    'xp_bonus': 4,
+                    'temporary_ability_cost': 2,
+                    'temporary_ability_duration': 'session',
+                    'description': 'Earn +4 XP at the end of each session. Can spend 2 stress to adopt a new unique/standard ability until the end of the session, at GM\'s discretion.'
+                }
+            },
+            'B': {
+                'stress': 11,
+                'description': 'Skilled',
+                'power': {
+                    'harm_level': 3,
+                    'force': 3,
+                    'position_reduction': False,
+                    'description': 'Level 3 harm'
+                },
+                'speed': {
+                    'movement': 40,
+                    'extended_movement': 80,
+                    'initiative_order': 3,
+                    'actions_per_turn': 2,
+                    'dash_cost': 0,
+                    'description': '40(80) ft movement, acts before C, D, F, 2 action/turn, push yourself to dash'
+                },
+                'range': {
+                    'base_range': 50,
+                    'extended_range': 100,
+                    'range_penalty': 0,
+                    'description': '50(100) ft, push yourself to extend'
+                },
+                'durability': {
+                    'stress_bonus': 2,
+                    'armor_charges': 2,
+                    'resistance_bonus': 1,
+                    'description': '+2 Stress boxes, 2 Armor charges'
+                },
+                'precision': {
+                    'success_threshold': 3,
+                    'critical_success': '3s',
+                    'critical_fail': 'none',
+                    'description': '3 counts as partial success'
+                },
+                'development': {
+                    'xp_bonus': 3,
+                    'temporary_ability_cost': 0,
+                    'temporary_ability_duration': 'none',
+                    'description': 'Earn +3 XP at the end of each session'
+                }
+            },
+            'C': {
+                'stress': 10,
+                'description': 'Average',
+                'power': {
+                    'harm_level': 2,
+                    'force': 2,
+                    'position_reduction': False,
+                    'description': 'Level 2 harm'
+                },
+                'speed': {
+                    'movement': 35,
+                    'extended_movement': 70,
+                    'initiative_order': 4,
+                    'actions_per_turn': 2,
+                    'dash_cost': 1,
+                    'description': '35(70) ft movement, acts before D, F, 2 action/turn, dash costs 1 action, push yourself to dash'
+                },
+                'range': {
+                    'base_range': 40,
+                    'extended_range': 80,
+                    'range_penalty': 1,
+                    'description': '40(80) ft, push yourself to extend, extension subtracts 1 effect'
+                },
+                'durability': {
+                    'stress_bonus': 1,
+                    'armor_charges': 1,
+                    'resistance_bonus': 1,
+                    'description': '+1 Stress box, 1 Armor charge'
+                },
+                'precision': {
+                    'success_threshold': 4,
+                    'critical_success': 'none',
+                    'critical_fail': 'none',
+                    'description': 'You can no longer critical fail'
+                },
+                'development': {
+                    'xp_bonus': 2,
+                    'temporary_ability_cost': 0,
+                    'temporary_ability_duration': 'none',
+                    'description': 'Earn +2 XP at the end of each session'
+                }
+            },
+            'D': {
+                'stress': 9,
+                'description': 'Below Average',
+                'power': {
+                    'harm_level': 1,
+                    'force': 1,
+                    'position_reduction': False,
+                    'description': 'Level 1 harm'
+                },
+                'speed': {
+                    'movement': 30,
+                    'extended_movement': 60,
+                    'initiative_order': 5,
+                    'actions_per_turn': 1,
+                    'dash_cost': 1,
+                    'description': '30(60) ft movement, acts before F, 1 action/turn, dash costs 1 action, push yourself to dash'
+                },
+                'range': {
+                    'base_range': 20,
+                    'extended_range': 40,
+                    'range_penalty': 1,
+                    'description': '20(40) ft, push yourself to extend, extension subtracts 1 effect'
+                },
+                'durability': {
+                    'stress_bonus': 0,
+                    'armor_charges': 1,
+                    'resistance_bonus': 1,
+                    'description': '0 Stress bonus, 1 Armor charge'
+                },
+                'precision': {
+                    'success_threshold': 4,
+                    'critical_success': 'none',
+                    'critical_fail': 'double_1s',
+                    'description': 'Double 1s count as critical fail'
+                },
+                'development': {
+                    'xp_bonus': 1,
+                    'temporary_ability_cost': 0,
+                    'temporary_ability_duration': 'none',
+                    'description': 'Earn +1 XP at the end of each session'
+                }
+            },
+            'F': {
+                'stress': 8,
+                'description': 'Flawed',
+                'power': {
+                    'harm_level': 0,
+                    'force': 0,
+                    'position_reduction': False,
+                    'description': 'No significant harm'
+                },
+                'speed': {
+                    'movement': 25,
+                    'extended_movement': 50,
+                    'initiative_order': 6,
+                    'actions_per_turn': 1,
+                    'dash_cost': 1,
+                    'description': '25(50) ft movement, 1 action/turn, dash costs 1 action, push yourself to dash'
+                },
+                'range': {
+                    'base_range': 10,
+                    'extended_range': 20,
+                    'range_penalty': 2,
+                    'description': '10(20) ft, push yourself to extend, extension subtracts 2 effect'
+                },
+                'durability': {
+                    'stress_bonus': -1,
+                    'armor_charges': 0,
+                    'resistance_bonus': 1,
+                    'description': '-1 Stress boxes, 0 Armor charges'
+                },
+                'precision': {
+                    'success_threshold': 4,
+                    'critical_success': 'none',
+                    'critical_fail': '1s_and_double_1s',
+                    'description': '1s and double 1s count as critical fail'
+                },
+                'development': {
+                    'xp_bonus': 0,
+                    'temporary_ability_cost': 0,
+                    'temporary_ability_duration': 'none',
+                    'description': 'Standard XP gain'
+                }
+            }
+        }
+    
+    def get_stand_coin_properties(self):
+        """Get Stand Coin properties, using defaults if not set."""
+        if not self.stand_coin_stat_properties:
+            return self.get_default_stand_coin_properties()
+        return self.stand_coin_stat_properties
+    
+    def get_stress_for_durability(self, durability_grade):
+        """Get stress value for a given durability grade."""
+        properties = self.get_stand_coin_properties()
+        if durability_grade in properties:
+            return properties[durability_grade].get('stress', 9)
+        return 9  # Default fallback
+    
+    def get_power_properties(self, grade):
+        """Get power properties for a given grade."""
+        properties = self.get_stand_coin_properties()
+        if grade in properties:
+            return properties[grade].get('power', {})
+        return {}
+    
+    def get_speed_properties(self, grade):
+        """Get speed properties for a given grade."""
+        properties = self.get_stand_coin_properties()
+        if grade in properties:
+            return properties[grade].get('speed', {})
+        return {}
+    
+    def get_range_properties(self, grade):
+        """Get range properties for a given grade."""
+        properties = self.get_stand_coin_properties()
+        if grade in properties:
+            return properties[grade].get('range', {})
+        return {}
+    
+    def get_durability_properties(self, grade):
+        """Get durability properties for a given grade."""
+        properties = self.get_stand_coin_properties()
+        if grade in properties:
+            return properties[grade].get('durability', {})
+        return {}
+    
+    def get_precision_properties(self, grade):
+        """Get precision properties for a given grade."""
+        properties = self.get_stand_coin_properties()
+        if grade in properties:
+            return properties[grade].get('precision', {})
+        return {}
+    
+    def get_development_properties(self, grade):
+        """Get development properties for a given grade."""
+        properties = self.get_stand_coin_properties()
+        if grade in properties:
+            return properties[grade].get('development', {})
+        return {}
+    
+    def get_grade_points(self):
+        """Get point values for each grade."""
+        if self.stand_coin_grade_points:
+            return self.stand_coin_grade_points
+        return self.get_default_grade_points()
+    
+    def validate_stand_coin_points(self, stand_stats):
+        """Validate that Stand Coin points match the rule."""
+        grade_points = self.get_grade_points()
+        total_points = sum(grade_points.get(grade, 0) for grade in stand_stats.values())
+        return total_points == self.level_1_stand_coin_points
+    
+    def validate_action_dice(self, action_dots):
+        """Validate that action dice match the rule."""
+        total_dice = sum(action_dots.values())
+        return total_dice == self.level_1_action_dice
+    
+    def validate_action_dice_distribution(self, action_dots, level):
+        """Validate action dice distribution."""
+        max_dice = self.max_dice_per_action_level_1 if level == 1 else self.max_dice_per_action
+        for action, dice in action_dots.items():
+            if dice > max_dice:
+                return False
+        return True
+
+
 class Campaign(models.Model):
     name = models.CharField(max_length=100)
     gm = models.ForeignKey(User, on_delete=models.CASCADE, related_name='campaigns_led')
@@ -287,22 +679,7 @@ class Character(models.Model):
 
     @property
     def development_xp_bonus(self):
-        if not hasattr(self, 'stand'):
-            return 0  # Or handle as an error, depending on game rules for non-Stand users
-
-        dev_grade = self.stand.development
-        if dev_grade == 'S':
-            return 5
-        elif dev_grade == 'A':
-            return 4
-        elif dev_grade == 'B':
-            return 3
-        elif dev_grade == 'C':
-            return 2
-        elif dev_grade == 'D':
-            return 1
-        else:  # F or other
-            return 0
+        return self.get_development_xp_bonus()
 
     @property
     def level(self):
@@ -418,23 +795,22 @@ class Character(models.Model):
         self._validate_standard_abilities_count()
 
     def _validate_action_dots_distribution(self):
+        game_rules = self._get_game_rules()
         total_dots = sum(self.action_dots.values())
-        if total_dots != 7:
+        if total_dots != game_rules.level_1_action_dice:
             raise ValidationError(
-                {'action_dots': 'A new character at level 1 must have exactly 7 action dots.'}
+                {'action_dots': f'A new character at level 1 must have exactly {game_rules.level_1_action_dice} action dots.'}
             )
         for action, dots in self.action_dots.items():
-            if self.level == 1 and dots > 2:  # Max 2 dots per action at level 1
+            max_dice = game_rules.max_dice_per_action_level_1 if self.level == 1 else game_rules.max_dice_per_action
+            if dots > max_dice:
                 raise ValidationError(
-                    {'action_dots': f'Action "{action}" cannot have more than 2 dots at level 1.'}
-                )
-            elif self.level > 1 and dots > 4: # Max 4 dots per action after level 1
-                raise ValidationError(
-                    {'action_dots': f'Action "{action}" cannot have more than 4 dots.'}
+                    {'action_dots': f'Action "{action}" cannot have more than {max_dice} dots at level {self.level}.'}
                 )
 
     def _validate_stand_coin_stats(self):
-        grade_points = {'S': 5, 'A': 4, 'B': 3, 'C': 2, 'D': 1, 'F': 0}
+        game_rules = self._get_game_rules()
+        grade_points = game_rules.get_grade_points()
         total_stand_coin_points = 0
         
         # Ensure stand exists
@@ -458,40 +834,75 @@ class Character(models.Model):
                     )
                 total_stand_coin_points += grade_points[grade]
 
-        if total_stand_coin_points != 10:
+        if total_stand_coin_points != game_rules.level_1_stand_coin_points:
             raise ValidationError(
-                {'stand_coin_stats': f'A new character at level 1 must have exactly 10 Stand Coin points. Current total: {total_stand_coin_points}.'}
+                {'stand_coin_stats': f'A new character at level 1 must have exactly {game_rules.level_1_stand_coin_points} Stand Coin points. Current total: {total_stand_coin_points}.'}
             )
 
     def _validate_stress_based_on_durability(self):
-        expected_stress = 9
+        # Get game rules for this character's campaign
+        game_rules = self._get_game_rules()
+        expected_stress = game_rules.get_stress_for_durability('C')  # Default to C grade
         durability_grade = None
         
         if hasattr(self, 'stand') and hasattr(self.stand, 'durability'):
             durability_grade = self.stand.durability
-
-        if durability_grade == 'S':
-            expected_stress = 13
-        elif durability_grade == 'A':
-            expected_stress = 12
-        elif durability_grade == 'B':
-            expected_stress = 11
-        elif durability_grade == 'C':
-            expected_stress = 10
-        elif durability_grade == 'D':
-            expected_stress = 9
-        elif durability_grade == 'F':
-            expected_stress = 8
+            expected_stress = game_rules.get_stress_for_durability(durability_grade)
         
         if self.stress != expected_stress:
             raise ValidationError(
                 {'stress': f'Stress must be {expected_stress} for a level 1 character with {durability_grade} Stand Durability.'}
             )
+    
+    def get_stand_coin_effects(self, stat_name, grade):
+        """Get the effects of a specific Stand Coin stat at a given grade."""
+        game_rules = self._get_game_rules()
+        
+        if stat_name == 'power':
+            return game_rules.get_power_properties(grade)
+        elif stat_name == 'speed':
+            return game_rules.get_speed_properties(grade)
+        elif stat_name == 'range':
+            return game_rules.get_range_properties(grade)
+        elif stat_name == 'durability':
+            return game_rules.get_durability_properties(grade)
+        elif stat_name == 'precision':
+            return game_rules.get_precision_properties(grade)
+        elif stat_name == 'development':
+            return game_rules.get_development_properties(grade)
+        else:
+            return {}
+    
+    def get_development_xp_bonus(self):
+        """Get XP bonus from Development Potential based on current game rules."""
+        if not hasattr(self, 'stand'):
+            return 0
+        
+        development_props = self.get_stand_coin_effects('development', self.stand.development)
+        return development_props.get('xp_bonus', 0)
+    
+    def _get_game_rules(self):
+        """Get the appropriate game rules for this character."""
+        if self.campaign:
+            # Try to get campaign-specific rules first
+            campaign_rules = GameRules.objects.filter(campaign=self.campaign, is_global=False).first()
+            if campaign_rules:
+                return campaign_rules
+        
+        # Fall back to global rules
+        global_rules = GameRules.objects.filter(is_global=True).first()
+        if global_rules:
+            return global_rules
+        
+        # Create default global rules if none exist
+        return GameRules.objects.create(is_global=True)
 
     def _validate_initial_abilities_count(self):
-        if self.total_abilities_count != 3:
+        game_rules = self._get_game_rules()
+        expected_abilities = game_rules.default_starting_abilities
+        if self.total_abilities_count != expected_abilities:
             raise ValidationError(
-                {'standard_abilities': 'A new character at level 1 must have exactly 3 abilities (standard, custom, or playbook).', 'total_abilities_count': self.total_abilities_count}
+                {'standard_abilities': f'A new character at level 1 must have exactly {expected_abilities} abilities (standard, custom, or playbook).', 'total_abilities_count': self.total_abilities_count}
             )
 
     def _validate_a_rank_abilities(self):
@@ -505,11 +916,12 @@ class Character(models.Model):
             if hasattr(self.stand, field) and getattr(self.stand, field) == 'A':
                 a_rank_count += 1
 
-        expected_abilities_from_a_ranks = a_rank_count * 2
-        # This assumes initial 3 abilities are already accounted for in total_abilities_count
+        game_rules = self._get_game_rules()
+        expected_abilities_from_a_ranks = a_rank_count * game_rules.abilities_per_a_grade
+        # This assumes initial abilities are already accounted for in total_abilities_count
         # and that A-ranks grant *additional* abilities.
-        # The total abilities should be 3 (initial) + expected_abilities_from_a_ranks
-        expected_total_abilities = 3 + expected_abilities_from_a_ranks
+        # The total abilities should be default_starting_abilities + expected_abilities_from_a_ranks
+        expected_total_abilities = game_rules.default_starting_abilities + expected_abilities_from_a_ranks
 
         if self.total_abilities_count != expected_total_abilities:
             raise ValidationError(
@@ -524,10 +936,11 @@ class Character(models.Model):
             )
 
         # Calculate expected total XP from advancements
+        game_rules = self._get_game_rules()
         expected_xp_from_advancements = (
-            self.heritage_points_gained * 5 +  # 5 XP per heritage point
-            self.stand_coin_points_gained * 10 + # 10 XP per stand coin point
-            self.action_dice_gained * 5  # 5 XP per action die
+            self.heritage_points_gained * game_rules.xp_cost_heritage_point +
+            self.stand_coin_points_gained * game_rules.xp_cost_stand_coin_point +
+            self.action_dice_gained * game_rules.xp_cost_action_dice
         )
 
         if self.total_xp_spent != expected_xp_from_advancements:
@@ -556,7 +969,8 @@ class Character(models.Model):
         self.save()
 
     def spend_xp_for_action_dice(self, xp_type, num_dice):
-        xp_cost = num_dice * 5
+        game_rules = self._get_game_rules()
+        xp_cost = num_dice * game_rules.xp_cost_action_dice
         if self.xp_clocks.get(xp_type, 0) < xp_cost:
             raise ValidationError(f'Not enough XP in {xp_type} to gain {num_dice} action dice.')
         
@@ -566,7 +980,8 @@ class Character(models.Model):
         self.save()
 
     def spend_xp_for_stand_coin(self, xp_type, num_points):
-        xp_cost = num_points * 10
+        game_rules = self._get_game_rules()
+        xp_cost = num_points * game_rules.xp_cost_stand_coin_point
         if self.xp_clocks.get(xp_type, 0) < xp_cost:
             raise ValidationError(f'Not enough XP in {xp_type} to gain {num_points} Stand Coin points.')
         
@@ -576,7 +991,8 @@ class Character(models.Model):
         self.save()
 
     def spend_xp_for_heritage_point(self, xp_type, num_points):
-        xp_cost = num_points * 5
+        game_rules = self._get_game_rules()
+        xp_cost = num_points * game_rules.xp_cost_heritage_point
         if self.xp_clocks.get(xp_type, 0) < xp_cost:
             raise ValidationError(f'Not enough XP in {xp_type} to gain {num_points} Heritage points.')
         

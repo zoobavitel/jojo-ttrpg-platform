@@ -41,8 +41,7 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     
     try {
-      const response = await authAPI.login(credentials);
-      const { token: newToken, user: userData } = response;
+      const { token: newToken, user: userData } = await authAPI.login(credentials);
       
       setToken(newToken);
       setUser(userData);
@@ -62,8 +61,7 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     
     try {
-      const response = await authAPI.signup(userData);
-      const { token: newToken, user: userInfo } = response;
+      const { token: newToken, user: userInfo } = await authAPI.signup(userData);
       
       setToken(newToken);
       setUser(userInfo);

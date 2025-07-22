@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, ArrowRight, Zap, Users, Dice6, BookOpen, Settings, LogOut } from 'lucide-react';
 import '../styles/Home.css';
-import { useCharacterSheet, useReferenceData, characterAPI, transformBackendToFrontend } from '../features/character-sheet';
+import { useCharacterSheet, characterAPI, transformBackendToFrontend } from '../features/character-sheet';
 import { useAuth } from '../features/auth';
 
 // Main Home Page Component
@@ -52,39 +52,17 @@ const HomePage = () => {
     setStressBoxes,
     traumaChecks,
     setTraumaChecks,
-    armorUses,
-    setArmorUses,
-    harmEntries,
-    setHarmEntries,
-    coinBoxes,
-    setCoinBoxes,
-    stashBoxes,
-    setStashBoxes,
-    healingClock,
-    setHealingClock,
     actionRatings,
     setActionRatings,
     standStats,
     setStandStats,
-    xpTracks,
     setXpTracks,
-    selectedAbilities,
     setSelectedAbilities,
-    customClocks,
     setCustomClocks,
     loading: sheetLoading,
     saving,
     error: sheetError,
-    handleSave,
-    rollAction,
-    addXP,
-    takeHarm,
-    healHarm,
-    indulgeVice,
-    logArmorExpenditure,
-    addProgressClock,
-    updateProgressClock,
-    loadCharacter
+    handleSave
   } = useCharacterSheet(selectedCharacter?.id, handleSaveCharacter);
 
   // Load character data when selectedCharacter changes
@@ -113,7 +91,7 @@ const HomePage = () => {
       setSelectedAbilities(selectedCharacter.abilities || []);
       setCustomClocks(selectedCharacter.clocks || []);
     }
-  }, [selectedCharacter, showCharacterSheet]);
+  }, [selectedCharacter, showCharacterSheet, setCharacterData, setActionRatings, setStandStats, setXpTracks, setSelectedAbilities, setCustomClocks]);
   
   // Load characters from backend on component mount
   useEffect(() => {
@@ -198,15 +176,7 @@ const HomePage = () => {
     setShowCharacterSheet(true);
   };
 
-  const handleCreateNewFromSheet = () => {
-    // Save current character first if there are changes
-    setSelectedCharacter(null);
-    // Keep the sheet open but clear the character data for a new one
-  };
 
-  const handleSwitchCharacter = (character) => {
-    setSelectedCharacter(character);
-  };
 
   const handleEditCharacter = (character) => {
     setSelectedCharacter(character);

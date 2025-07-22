@@ -1,0 +1,199 @@
+{% load static %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // JSON field validation and formatting
+    const jsonFields = document.querySelectorAll('textarea[name*="json"], input[name*="json"]');
+    
+    jsonFields.forEach(function(field) {
+        // Add JSON validation
+        field.addEventListener('blur', function() {
+            try {
+                if (this.value.trim()) {
+                    JSON.parse(this.value);
+                    this.style.borderColor = '#28a745';
+                }
+            } catch (e) {
+                this.style.borderColor = '#dc3545';
+                if (!this.nextElementSibling || !this.nextElementSibling.classList.contains('json-error')) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'json-error';
+                    errorDiv.style.color = '#dc3545';
+                    errorDiv.style.fontSize = '12px';
+                    errorDiv.style.marginTop = '5px';
+                    errorDiv.textContent = 'Invalid JSON format: ' + e.message;
+                    this.parentNode.insertBefore(errorDiv, this.nextSibling);
+                }
+            }
+        });
+        
+        // Remove error message when user starts typing
+        field.addEventListener('input', function() {
+            this.style.borderColor = '';
+            const errorDiv = this.parentNode.querySelector('.json-error');
+            if (errorDiv) {
+                errorDiv.remove();
+            }
+        });
+    });
+    
+    // Auto-format JSON on focus
+    const formatJSON = function(field) {
+        try {
+            if (field.value.trim()) {
+                const parsed = JSON.parse(field.value);
+                field.value = JSON.stringify(parsed, null, 2);
+            }
+        } catch (e) {
+            // Don't format if invalid JSON
+        }
+    };
+    
+    jsonFields.forEach(function(field) {
+        field.addEventListener('focus', function() {
+            formatJSON(this);
+        });
+    });
+    
+    // Campaign selection logic
+    const isGlobalCheckbox = document.querySelector('input[name="is_global"]');
+    const campaignSelect = document.querySelector('select[name="campaign"]');
+    
+    if (isGlobalCheckbox && campaignSelect) {
+        const updateCampaignField = function() {
+            if (isGlobalCheckbox.checked) {
+                campaignSelect.disabled = true;
+                campaignSelect.value = '';
+                campaignSelect.style.opacity = '0.5';
+            } else {
+                campaignSelect.disabled = false;
+                campaignSelect.style.opacity = '1';
+            }
+        };
+        
+        isGlobalCheckbox.addEventListener('change', updateCampaignField);
+        updateCampaignField(); // Initial state
+    }
+    
+    // Add copy buttons for JSON examples
+    const jsonHelpDivs = document.querySelectorAll('.json-help');
+    jsonHelpDivs.forEach(function(div) {
+        const copyButton = document.createElement('button');
+        copyButton.type = 'button';
+        copyButton.textContent = 'Copy Example';
+        copyButton.style.cssText = 'margin-top: 5px; padding: 2px 8px; font-size: 11px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;';
+        
+        copyButton.addEventListener('click', function() {
+            const exampleText = div.textContent.replace('Example: ', '').replace('Complex JSON structure with properties for each grade (S, A, B, C, D, F).\nEach grade can have: power, speed, range, durability, precision, development properties.', '');
+            navigator.clipboard.writeText(exampleText.trim()).then(function() {
+                copyButton.textContent = 'Copied!';
+                setTimeout(function() {
+                    copyButton.textContent = 'Copy Example';
+                }, 2000);
+            });
+        });
+        
+        div.appendChild(copyButton);
+    });
+    
+    // Add fieldset descriptions
+    const fieldsets = document.querySelectorAll('fieldset');
+    fieldsets.forEach(function(fieldset) {
+        const legend = fieldset.querySelector('h2');
+        if (legend) {
+            const description = legend.getAttribute('data-description');
+            if (description) {
+                const descDiv = document.createElement('div');
+                descDiv.className = 'fieldset-description';
+                descDiv.innerHTML = '<p>' + description + '</p>';
+                fieldset.insertBefore(descDiv, fieldset.firstChild);
+            }
+        }
+    });
+    
+    // Add save confirmation for global rules
+    const form = document.querySelector('form');
+    if (form && isGlobalCheckbox && isGlobalCheckbox.checked) {
+        form.addEventListener('submit', function(e) {
+            if (!confirm('You are about to save changes to GLOBAL rules. This will affect ALL campaigns that don\'t have specific rules. Are you sure?')) {
+                e.preventDefault();
+            }
+        });
+    }
+});
+</script>
+
+<style>
+/* Additional styling for the admin form */
+.form-row {
+    margin-bottom: 15px;
+}
+
+.form-row label {
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.form-row input[type="text"],
+.form-row input[type="number"],
+.form-row textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+}
+
+.form-row textarea {
+    min-height: 100px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+}
+
+.form-row input:focus,
+.form-row textarea:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+}
+
+.json-help {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+    margin-top: 5px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    position: relative;
+}
+
+.json-help button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+}
+
+.json-error {
+    color: #dc3545;
+    font-size: 12px;
+    margin-top: 5px;
+    padding: 5px;
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 3px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .form-row input[type="text"],
+    .form-row input[type="number"],
+    .form-row textarea {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    .json-help {
+        font-size: 11px;
+    }
+}
+</style> 

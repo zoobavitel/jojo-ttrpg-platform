@@ -310,7 +310,6 @@ export const transformBackendToFrontend = (backendCharacter) => {
     
     // Additional backend fields
     campaign: backendCharacter.campaign,
-    crew: backendCharacter.crew,
     playbook: backendCharacter.playbook,
     level: backendCharacter.level,
     loadout: backendCharacter.loadout,
