@@ -178,6 +178,7 @@ class SpinAbilitySerializer(serializers.ModelSerializer):
 
 class StandSerializer(serializers.ModelSerializer):
     armor_charges = serializers.IntegerField(read_only=True)
+    stress_max = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Stand

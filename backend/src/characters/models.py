@@ -745,6 +745,22 @@ class Stand(models.Model):
         else:  # F
             return 1
 
+    @property
+    def stress_max(self):
+        """Maximum stress boxes auto-derived from Durability grade."""
+        if self.durability == 'S':
+            return 13
+        elif self.durability == 'A':
+            return 12
+        elif self.durability == 'B':
+            return 11
+        elif self.durability == 'C':
+            return 10
+        elif self.durability == 'D':
+            return 9
+        else:  # F
+            return 8
+
 
 class StandAbility(models.Model):
     stand = models.ForeignKey(Stand, on_delete=models.CASCADE, related_name='abilities')
