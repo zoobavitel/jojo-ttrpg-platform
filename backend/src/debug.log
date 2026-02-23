@@ -2063,3 +2063,10 @@ django.db.utils.OperationalError: no such column: characters_campaign.wanted_sta
 [WARNING] 2025-07-21 22:07:24,363 django.request - Unsupported Media Type: /api/crews/1/propose-name/
 [INFO] 2025-07-21 22:25:29,703 django.utils.autoreload - Watching for file changes with StatReloader
 [INFO] 2025-07-21 22:26:19,938 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-23 15:20:51,818 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-23 15:22:24,906 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-23 15:24:05,421 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2026-02-23 15:24:07,986 django.request - Forbidden: /api/
+[INFO] 2026-02-23 15:24:27,869 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-23 15:25:21,689 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2026-02-23 15:25:26,247 django.request - Forbidden: /api/

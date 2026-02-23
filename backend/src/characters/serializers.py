@@ -177,6 +177,8 @@ class SpinAbilitySerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'spin_type', 'description', 'stress_cost', 'frequency']
 
 class StandSerializer(serializers.ModelSerializer):
+    armor_charges = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = Stand
         fields = '__all__'
@@ -226,6 +228,9 @@ class CharacterSerializer(serializers.ModelSerializer):
     faction_reputation = serializers.JSONField(required=False)
     gm_character_locked = serializers.BooleanField(required=False)
     gm_allowed_edit_fields = serializers.JSONField(required=False)
+
+    # Development grade XP bonus (read-only, derived from Stand.development)
+    development_xp_bonus = serializers.IntegerField(read_only=True)
     inventory = serializers.JSONField(required=False)
     reputation_status = serializers.JSONField(required=False)
 

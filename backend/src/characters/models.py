@@ -317,14 +317,14 @@ class Character(models.Model):
     background_note = models.TextField(blank=True, null=True)
     background_note2 = models.TextField(blank=True, null=True)
 
-    action_dots = models.JSONField(default=dict)
+    action_dots = models.JSONField(default=dict, blank=True)
     playbook = models.CharField(max_length=20, choices=[('STAND','Stand'),('HAMON','Hamon'),('SPIN','Spin')], default='STAND')
 
     stand_type = models.CharField(max_length=50, blank=True, null=True)
     stand_name = models.CharField(max_length=100, blank=True, null=True)
     stand_form = models.TextField(blank=True, null=True)
     stand_conscious = models.BooleanField(default=True)
-    coin_stats = models.JSONField(default=dict)
+    coin_stats = models.JSONField(default=dict, blank=True)
 
     armor_type = models.CharField(
         max_length=20,
@@ -336,13 +336,13 @@ class Character(models.Model):
     close_friend = models.CharField(max_length=100, blank=True)
     rival = models.CharField(max_length=100, blank=True)
 
-    vice = models.ForeignKey(Vice, on_delete=models.SET_NULL, null=True)
+    vice = models.ForeignKey(Vice, on_delete=models.SET_NULL, null=True, blank=True)
     vice_details = models.TextField(blank=True, null=True)
 
     loadout = models.IntegerField(default=1)
 
     stress = models.IntegerField(default=0)
-    trauma = models.JSONField(default=list)
+    trauma = models.JSONField(default=list, blank=True)
     healing_clock_segments = models.IntegerField(default=4)
     healing_clock_filled = models.IntegerField(default=0)
 
@@ -359,7 +359,7 @@ class Character(models.Model):
     harm_level4_used = models.BooleanField(default=False)
     harm_level4_name = models.CharField(max_length=100, blank=True, null=True)
 
-    xp_clocks = models.JSONField(default=dict)
+    xp_clocks = models.JSONField(default=dict, blank=True)
     total_xp_spent = models.IntegerField(default=0)
     heritage_points_gained = models.IntegerField(default=0)
     stand_coin_points_gained = models.IntegerField(default=0)
@@ -407,9 +407,15 @@ class Character(models.Model):
         self._validate_initial_abilities_count()
         self._validate_xp_advancements()
 
-        # Validate A-rank abilities if a Stand exists
+        # Validate action dot cap at level 1 (7 total, max 2 per action)
+        if self.level == 1 and self.action_dots:
+            self._validate_action_dots_distribution()
+
+        # Validate Stand stat constraints if Stand exists
         if hasattr(self, 'stand'):
             self._validate_a_rank_abilities()
+            self._validate_stand_coin_stat_cap()
+            self._validate_min_stand_stat_above_f()
 
     def _validate_level_1_creation(self):
         self._validate_action_dots_distribution()
@@ -517,17 +523,13 @@ class Character(models.Model):
             )
 
     def _validate_xp_advancements(self):
-        # Ensure total_xp_spent is a multiple of 10
-        if self.total_xp_spent % 10 != 0:
-            raise ValidationError(
-                {'total_xp_spent': 'Total XP spent must be a multiple of 10 for advancements.'}
-            )
-
         # Calculate expected total XP from advancements
+        # action_dice_gained costs 5 XP each; stand_coin_points_gained costs 10 XP each;
+        # heritage_points_gained costs 5 XP each
         expected_xp_from_advancements = (
-            self.heritage_points_gained * 5 +  # 5 XP per heritage point
-            self.stand_coin_points_gained * 10 + # 10 XP per stand coin point
-            self.action_dice_gained * 5  # 5 XP per action die
+            self.heritage_points_gained * 5 +
+            self.stand_coin_points_gained * 10 +
+            self.action_dice_gained * 5
         )
 
         if self.total_xp_spent != expected_xp_from_advancements:
@@ -547,6 +549,36 @@ class Character(models.Model):
         if self.heritage_points_gained < 0:
             raise ValidationError(
                 {'heritage_points_gained': 'Heritage points gained cannot be negative.'}
+            )
+
+    def _validate_stand_coin_stat_cap(self):
+        """Validates Stand stat grades: must be valid (S/A/B/C/D/F), and players cannot
+        have S-rank (max is A grade) unless GM explicitly allows it."""
+        if not hasattr(self, 'stand'):
+            return
+        valid_grades = {'S', 'A', 'B', 'C', 'D', 'F'}
+        stand_fields = ['power', 'speed', 'range', 'durability', 'precision', 'development']
+        for field in stand_fields:
+            if hasattr(self.stand, field):
+                grade = getattr(self.stand, field)
+                if grade not in valid_grades:
+                    raise ValidationError(
+                        {'stand_coin_stats': f'Invalid grade "{grade}" for stat "{field}". Must be S, A, B, C, D, or F.'}
+                    )
+                if grade == 'S' and not self.gm_can_have_s_rank_stand_stats:
+                    raise ValidationError(
+                        {'stand_coin_stats': f'Player characters cannot have S-rank in {field.upper()} unless explicitly allowed by the GM.'}
+                    )
+
+    def _validate_min_stand_stat_above_f(self):
+        """At least one Stand stat must be grade D or higher (no all-F is allowed)."""
+        if not hasattr(self, 'stand'):
+            return
+        stand_fields = ['power', 'speed', 'range', 'durability', 'precision', 'development']
+        grades = [getattr(self.stand, f) for f in stand_fields if hasattr(self.stand, f)]
+        if grades and all(g == 'F' for g in grades):
+            raise ValidationError(
+                {'stand_coin_stats': 'At least one Stand stat must be grade D or higher (no all-F is allowed).'}
             )
 
     def gain_xp(self, xp_amount, xp_type):
@@ -696,6 +728,22 @@ class Stand(models.Model):
 
     armor = models.IntegerField(default=0)
     standard_ability = models.ForeignKey('Ability', on_delete=models.SET_NULL, null=True, blank=True, related_name='stand_default')
+
+    @property
+    def armor_charges(self):
+        """Armor charges auto-derived from Durability grade."""
+        if self.durability == 'S':
+            return 5
+        elif self.durability == 'A':
+            return 4
+        elif self.durability == 'B':
+            return 4
+        elif self.durability == 'C':
+            return 3
+        elif self.durability == 'D':
+            return 2
+        else:  # F
+            return 1
 
 
 class StandAbility(models.Model):

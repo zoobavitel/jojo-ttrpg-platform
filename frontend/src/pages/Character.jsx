@@ -328,7 +328,10 @@ const CharacterSheetWrapper = ({ character, onClose, onSave, onCreateNew, onSwit
       } else if (highest >= 4) {
         outcome = 'Partial Success';
       }
-      
+
+      // Resistance critical (2+ sixes): clears 1 stress instead of costing stress
+      const resistanceCritical = isResistanceRoll && sixes > 1;
+
       setDiceResult({
         action: actionName,
         dice: dice,
@@ -336,7 +339,8 @@ const CharacterSheetWrapper = ({ character, onClose, onSave, onCreateNew, onSwit
         outcome: outcome,
         special: sixes > 1 ? `Critical! (${sixes} sixes)` : '',
         isResistance: isResistanceRoll,
-        stressCost: isResistanceRoll ? 6 - highest : null,
+        stressCost: resistanceCritical ? -1 : (isResistanceRoll ? 6 - highest : null),
+        resistanceCritical: resistanceCritical,
         zeroDice: false,
         isDesperateAction: isDesperateAction
       });
@@ -1121,6 +1125,24 @@ const CharacterSheetWrapper = ({ character, onClose, onSave, onCreateNew, onSwit
                 <div className="mt-2 text-xs text-gray-400">
                   Total: {Object.values(standStats).reduce((sum, val) => sum + val, 0)}/10 points
                 </div>
+                {/* Derived stats from Stand grades (capped at A=4 for players) */}
+                <div className="mt-2 space-y-1 text-xs border-t border-gray-600 pt-2">
+                  <div className="text-gray-400 font-semibold">Derived:</div>
+                  <div className="flex justify-between text-gray-300">
+                    <span>Armor charges</span>
+                    <span className="text-blue-400 font-bold">
+                      {standStats.durability <= 0 ? 1
+                        : standStats.durability === 1 ? 2
+                        : standStats.durability === 2 ? 3
+                        : standStats.durability >= 3 ? 4
+                        : 1}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-gray-300">
+                    <span>Dev. session XP bonus</span>
+                    <span className="text-yellow-400 font-bold">+{standStats.development}</span>
+                  </div>
+                </div>
               </div>
 
               {/* Action Ratings */}
@@ -1340,14 +1362,40 @@ const CharacterSheetWrapper = ({ character, onClose, onSave, onCreateNew, onSwit
                   
                   {diceResult.isResistance && (
                     <div className="bg-gray-800 p-2 rounded text-xs">
-                      <div className="text-yellow-400 font-bold mb-1">Resistance Roll - Stress Cost: {diceResult.stressCost}</div>
-                      <div className="text-gray-300 space-y-1">
-                        <div>• Pay {diceResult.stressCost} stress to reduce harm by one level</div>
-                        <div>• Level 3 → Level 2 (only if Level 2 slot is open)</div>
-                        <div>• Level 2 → Level 1 (only if Level 1 slot is open)</div>
-                        <div>• Level 1 → Removed completely</div>
-                        <div className="text-yellow-300 mt-1">⚠ Must clear lower-level harm first if slots are full!</div>
-                      </div>
+                      {diceResult.resistanceCritical ? (
+                        <>
+                          <div className="text-green-400 font-bold mb-1">⭐ Resistance Critical — Clears 1 Stress!</div>
+                          <div className="text-gray-300 space-y-1">
+                            <div>• The resistance negates the consequence entirely</div>
+                            <div>• Remove 1 filled stress box</div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const idx = stressBoxes.lastIndexOf(true);
+                              if (idx !== -1) {
+                                const updated = [...stressBoxes];
+                                updated[idx] = false;
+                                setStressBoxes(updated);
+                              }
+                              setDiceResult(null);
+                            }}
+                            className="mt-2 bg-green-700 hover:bg-green-600 px-2 py-1 rounded text-xs"
+                          >
+                            Apply: Clear 1 stress
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-yellow-400 font-bold mb-1">Resistance Roll — Stress Cost: {diceResult.stressCost}</div>
+                          <div className="text-gray-300 space-y-1">
+                            <div>• Pay {diceResult.stressCost} stress to reduce harm by one level</div>
+                            <div>• Level 3 → Level 2 (only if Level 2 slot is open)</div>
+                            <div>• Level 2 → Level 1 (only if Level 1 slot is open)</div>
+                            <div>• Level 1 → Removed completely</div>
+                            <div className="text-yellow-300 mt-1">⚠ Must clear lower-level harm first if slots are full!</div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
                   
@@ -1494,13 +1542,19 @@ const CharacterSheetWrapper = ({ character, onClose, onSave, onCreateNew, onSwit
                 {/* Total XP and Advancement */}
                 <div className="bg-gray-800 p-2 rounded text-xs">
                   <div className="text-purple-400 font-bold">Total XP: {getTotalXP()}</div>
-                  <div className="text-gray-300 mt-1">
-                    Spend 10 XP to advance:
-                  </div>
+                  {standStats.development > 0 && (
+                    <div className="text-yellow-400 mt-1">
+                      Dev. grade bonus: +{standStats.development} XP/session
+                    </div>
+                  )}
+                  <div className="text-gray-300 mt-2 font-semibold">Level-up (spend 10 XP) — choose ONE:</div>
                   <div className="text-gray-400 space-y-1 mt-1">
-                    • Increase action rating by 1
-                    • Gain new special ability
-                    • Increase Stand coin stat by 1 grade
+                    <div>• Upgrade one Stand Coin stat by 1 grade</div>
+                    <div>• +2 action dots <em>and</em> gain one standard/custom ability</div>
+                  </div>
+                  <div className="border-t border-gray-600 mt-2 pt-2">
+                    <div className="text-gray-300 font-semibold">Outside level-up:</div>
+                    <div className="text-gray-400 mt-1">• Spend 5 XP → +1 action dot</div>
                   </div>
                 </div>
               </div>

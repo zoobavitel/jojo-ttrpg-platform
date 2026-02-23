@@ -292,6 +292,52 @@ class CharacterViewSet(viewsets.ModelViewSet):
             'ticks_added': ticks
         })
 
+    @action(detail=True, methods=['post'], url_path='spend-xp-for-action-dot')
+    def spend_xp_for_action_dot(self, request, pk=None):
+        """Spend 5 XP to gain +1 action dot (outside level-up)."""
+        character = self.get_object()
+        xp_type = request.data.get('xp_type')
+        action_name = request.data.get('action_name')
+
+        if not xp_type:
+            return Response(
+                {'error': 'xp_type is required (e.g. "insight", "prowess", "resolve")'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if not action_name:
+            return Response(
+                {'error': 'action_name is required (e.g. "hunt", "finesse")'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        xp_cost = 5
+        current_xp = character.xp_clocks.get(xp_type, 0)
+        if current_xp < xp_cost:
+            return Response(
+                {'error': f'Not enough XP in {xp_type}: need {xp_cost}, have {current_xp}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Deduct XP and record the advancement
+        character.xp_clocks[xp_type] = current_xp - xp_cost
+        character.total_xp_spent += xp_cost
+        character.action_dice_gained += 1
+
+        # Increment the action dot
+        action_dots = dict(character.action_dots)
+        action_dots[action_name] = action_dots.get(action_name, 0) + 1
+        character.action_dots = action_dots
+
+        character.save()
+
+        return Response({
+            'message': f'Spent 5 XP from {xp_type} to gain +1 dot in {action_name}',
+            'xp_type': xp_type,
+            'action_name': action_name,
+            'new_dot_value': character.action_dots[action_name],
+            'remaining_xp': character.xp_clocks[xp_type],
+        })
+
     @action(detail=False, methods=['post'], url_path='create-template')
     def create_template(self, request):
         """Create a character template for quick character creation."""
