@@ -1,2128 +1,965 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus } from 'lucide-react';
-import { PC_STAT_DESC, DEV_SESSION_XP, DUR_TABLE, GRADE_LETTERS } from '../data/data.js';
+import React, { useState, useEffect } from 'react';
+import {
+  GRADE_LETTERS, DUR_TABLE, DEV_SESSION_XP, PC_STAT_DESC,
+  MAX_CREATION_DOTS, MAX_DOTS_PER_ACTION_CREATION, ACTION_ATTR,
+} from '../data/data.js';
 
-// computeLevel: derives character level from Stand Coin points and action dots spent.
-// Formula matches backend: level = 1 + floor(totalXpSpent / 10)
-// where totalXpSpent = (standCoinPoints × 10) + (actionDots × 5) − 95
-// (95 = creation baseline: 6 stat pts × 10 + 7 action dots × 5 = 95)
-const computeLevel = (standStats, actionRatings) => {
-  const standPts  = Object.values(standStats).reduce((s, v) => s + v, 0);
-  const actionDots = Object.values(actionRatings).reduce((s, v) => s + v, 0);
-  const xpSpent = (standPts * 10) + (actionDots * 5) - 95;
-  return 1 + Math.max(0, Math.floor(xpSpent / 10));
+// ── ProgressClock ─────────────────────────────────────────────────────────────
+
+const ProgressClock = ({ size = 80, segments = 4, filled = 0, onClick = null, interactive = false }) => {
+  const r = size / 2 - 4, cx = size / 2, cy = size / 2;
+  const sa = 360 / segments;
+  return (
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+      {Array.from({ length: segments }, (_, i) => {
+        const a1 = ((i * sa - 90) * Math.PI) / 180;
+        const a2 = (((i + 1) * sa - 90) * Math.PI) / 180;
+        const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
+        const x2 = cx + r * Math.cos(a2), y2 = cy + r * Math.sin(a2);
+        return (
+          <path key={i}
+            d={`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${sa > 180 ? 1 : 0} 1 ${x2} ${y2} Z`}
+            fill={i < filled ? '#dc2626' : 'transparent'} stroke="#6b7280" strokeWidth="1"
+            style={{ cursor: interactive ? 'pointer' : 'default' }}
+            onClick={interactive && onClick ? () => onClick(i < filled ? i : i + 1) : undefined}
+          />
+        );
+      })}
+      <circle cx={cx} cy={cy} r={r} fill="transparent" stroke="#6b7280" strokeWidth="2" />
+    </svg>
+  );
 };
-const CharacterSheetWrapper = ({ character, onClose, onSave, onCreateNew, onSwitchCharacter, allCharacters = [] }) => {
+
+// ── CharacterSheetWrapper ─────────────────────────────────────────────────────
+
+const VICE_OPTIONS = [
+  'Gambling','Obsession','Violence','Pleasure','Stupor','Weird',
+  'Obligation','Faith','Luxury','Art','Competition','Power','Adventure','Solitude','Justice',
+];
+
+const CharacterSheetWrapper = ({
+  character, onClose, onSave, onCreateNew, onSwitchCharacter, allCharacters = [],
+}) => {
   const [activeMode, setActiveMode] = useState('CHARACTER MODE');
-  const [navOpen, setNavOpen] = useState(false);
-  const [expandedSections, setExpandedSections] = useState({
-    gameRules: false,
-    collections: false,
-  });
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [showSearchResults, setShowSearchResults] = useState(false);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [selectedAbilities, setSelectedAbilities] = useState(character?.abilities || []);
-  
-  // Update component state when character prop changes
-  useEffect(() => {
-    if (character) {
-      setCharacterData({
-        name: character.name || '',
-        standName: character.standName || '',
-        heritage: character.heritage || 'Human',
-        background: character.background || '',
-        look: character.look || '',
-        vice: character.vice || '',
-        crew: character.crew || ''
-      });
-      setStressBoxes(character.stress || Array(9).fill(false));
-      setTraumaChecks(character.trauma || {
-        COLD: false, HAUNTED: false, OBSESSED: false, PARANOID: false,
-        RECKLESS: false, SOFT: false, UNSTABLE: false, VICIOUS: false
-      });
-      setArmorUses(character.armor || { armor: false, heavy: false, special: false });
-      setHarmEntries(character.harmEntries || {
-        level3: [''],
-        level2: ['', ''],
-        level1: ['', '']
-      });
-      setCoinBoxes(character.coin || Array(4).fill(false));
-      setStashBoxes(character.stash || Array(40).fill(false));
-      setHealingClock(character.healingClock || 0);
-      setActionRatings(character.actionRatings || {
-        HUNT: 0, STUDY: 0, SURVEY: 0, TINKER: 0,
-        FINESSE: 0, PROWL: 0, SKIRMISH: 0, WRECK: 0,
-        BIZARRE: 0, COMMAND: 0, CONSORT: 0, SWAY: 0
-      });
-      setStandStats(character.standStats || {
-        power: 1, speed: 1, range: 1, durability: 1, precision: 1, development: 1
-      });
-      setXpTracks(character.xp || {
-        insight: 0, prowess: 0, resolve: 0, heritage: 0, playbook: 0
-      });
-      setSelectedAbilities(character.abilities || []);
-      setCustomClocks(character.clocks || []);
-    } else {
-      // Reset to default values for new character
-      setCharacterData({
-        name: '',
-        standName: '',
-        heritage: 'Human',
-        background: '',
-        look: '',
-        vice: '',
-        crew: ''
-      });
-      setStressBoxes(Array(9).fill(false));
-      setTraumaChecks({
-        COLD: false, HAUNTED: false, OBSESSED: false, PARANOID: false,
-        RECKLESS: false, SOFT: false, UNSTABLE: false, VICIOUS: false
-      });
-      setArmorUses({ armor: false, heavy: false, special: false });
-      setHarmEntries({
-        level3: [''],
-        level2: ['', ''],
-        level1: ['', '']
-      });
-      setCoinBoxes(Array(4).fill(false));
-      setStashBoxes(Array(40).fill(false));
-      setHealingClock(0);
-      setActionRatings({
-        HUNT: 0, STUDY: 0, SURVEY: 0, TINKER: 0,
-        FINESSE: 0, PROWL: 0, SKIRMISH: 0, WRECK: 0,
-        BIZARRE: 0, COMMAND: 0, CONSORT: 0, SWAY: 0
-      });
-      setStandStats({
-        power: 1, speed: 1, range: 1, durability: 1, precision: 1, development: 1
-      });
-      setXpTracks({
-        insight: 0, prowess: 0, resolve: 0, heritage: 0, playbook: 0
-      });
-      setSelectedAbilities([]);
-      setCustomClocks([]);
-    }
-  }, [character]);
-  
-  // Interactive state - initialize with character data if provided
-  const [characterData, setCharacterData] = useState({
-    name: character?.name || '',
-    standName: character?.standName || '',
-    heritage: character?.heritage || 'Human',
-    background: character?.background || '',
-    look: character?.look || '',
-    vice: character?.vice || '',
-    crew: character?.crew || ''
+
+  const [charData, setCharData] = useState({
+    name: character?.name || '', standName: character?.standName || '',
+    heritage: character?.heritage || 'Human', background: character?.background || '',
+    look: character?.look || '', vice: character?.vice || '', crew: character?.crew || '',
   });
 
-  const [stressBoxes, setStressBoxes] = useState(character?.stress || Array(9).fill(false));
-  const [traumaChecks, setTraumaChecks] = useState(character?.trauma || {
-    COLD: false, HAUNTED: false, OBSESSED: false, PARANOID: false,
-    RECKLESS: false, SOFT: false, UNSTABLE: false, VICIOUS: false
+  const [standStats, setStandStats] = useState(character?.standStats || {
+    power: 1, speed: 1, range: 1, durability: 1, precision: 1, development: 1,
   });
-  const [armorUses, setArmorUses] = useState(character?.armor || { armor: false, heavy: false, special: false });
-  const [harmEntries, setHarmEntries] = useState(character?.harmEntries || {
-    level3: [''],
-    level2: ['', ''],
-    level1: ['', '']
-  });
-  const [coinBoxes, setCoinBoxes] = useState(character?.coin || Array(4).fill(false));
-  const [stashBoxes, setStashBoxes] = useState(character?.stash || Array(40).fill(false));
-  const [healingClock, setHealingClock] = useState(character?.healingClock || 0);
+
   const [actionRatings, setActionRatings] = useState(character?.actionRatings || {
     HUNT: 0, STUDY: 0, SURVEY: 0, TINKER: 0,
     FINESSE: 0, PROWL: 0, SKIRMISH: 0, WRECK: 0,
-    BIZARRE: 0, COMMAND: 0, CONSORT: 0, SWAY: 0
-  });
-  
-  // Stand Coin Stats - NEW addition preserving the original concept
-  const [standStats, setStandStats] = useState(character?.standStats || {
-    power: 1, speed: 1, range: 1, durability: 1, precision: 1, development: 1
+    BIZARRE: 0, COMMAND: 0, CONSORT: 0, SWAY: 0,
   });
 
-  // ── Creation mode: enforces 7-total / max-2-per-action dot caps ──────────
-  const [isCreation, setIsCreation] = useState(!character?.id);
+  const [stressFilled, setStressFilled]         = useState(character?.stressFilled || 0);
+  const [trauma, setTrauma]                     = useState(character?.trauma || {
+    COLD: false, HAUNTED: false, OBSESSED: false, PARANOID: false,
+    RECKLESS: false, SOFT: false, UNSTABLE: false, VICIOUS: false,
+  });
+  const [regularArmorUsed, setRegularArmorUsed] = useState(character?.regularArmorUsed || 0);
+  const [specialArmorUsed, setSpecialArmorUsed] = useState(character?.specialArmorUsed || false);
+  const [harm, setHarm]                         = useState(character?.harm || { level3: [''], level2: ['', ''], level1: ['', ''] });
+  const [healingClock, setHealingClock]         = useState(character?.healingClock || 0);
+  const [coinFilled, setCoinFilled]             = useState(character?.coinFilled || 0);
+  const [stashBoxes, setStashBoxes]             = useState(character?.stash || Array(40).fill(false));
+  const [xp, setXp]                             = useState(character?.xp || { insight: 0, prowess: 0, resolve: 0, heritage: 0, playbook: 0 });
 
-  // ── Level-up modal ────────────────────────────────────────────────────────
-  const [levelUpOpen, setLevelUpOpen] = useState(false);
-  const [levelUpMode, setLevelUpMode] = useState('stat'); // 'stat' | 'dots'
-  const [levelUpStat, setLevelUpStat] = useState('power');
-
-  // ── Minor advance (5 XP → +1 dot) ────────────────────────────────────────
+  const [showLevelUp, setShowLevelUp]           = useState(false);
+  const [levelUpChoice, setLevelUpChoice]       = useState('stat');
+  const [levelUpStat, setLevelUpStat]           = useState('power');
+  const [levelUpDot1, setLevelUpDot1]           = useState('HUNT');
+  const [levelUpDot2, setLevelUpDot2]           = useState('HUNT');
   const [minorAdvanceAction, setMinorAdvanceAction] = useState('HUNT');
 
-  // ── Armor charge boxes (count driven by Durability grade) ─────────────────
-  const [armorCharges, setArmorCharges] = useState(
-    () => Array(DUR_TABLE[GRADE_LETTERS[character?.standStats?.durability ?? 1]]?.charges ?? 3).fill(false)
-  );
-
+  const [abilities, setAbilities] = useState(character?.abilities || []);
+  const [clocks, setClocks]       = useState(character?.clocks || []);
+  const [playbook, setPlaybook]   = useState(character?.playbook || 'Stand');
   const [diceResult, setDiceResult] = useState(null);
-  const [customClocks, setCustomClocks] = useState(character?.clocks || []);
-  
-  // Crew state
+
   const [crewData, setCrewData] = useState({
-    name: '',
-    reputation: '',
-    wardBossTitle: 'Ward Boss',
-    rep: 0,
-    turf: 0,
-    hold: 'strong', // 'weak' or 'strong'
-    tier: 0,
-    wanted: 0,
-    coin: 0,
-    vaults: 0, // 0, 4, or 12 (0 + 4 + 8)
-    description: '',
-    specialAbilities: [],
+    name: '', reputation: '', rep: 0, turf: 0, hold: 'strong', tier: 0,
+    wanted: 0, coin: 0, description: '', specialAbilities: [],
     upgrades: {
-      lair: {
-        carriage: false,
-        boat: false,
-        hidden: false,
-        quarters: false,
-        secure: false,
-        vault: false,
-        workshop: false
-      },
-      quality: {
-        documents: 0,
-        gear: 0,
-        implements: 0,
-        supplies: 0,
-        tools: 0,
-        weapons: 0
-      },
-      training: {
-        insight: false,
-        prowess: false,
-        resolve: false,
-        personal: false,
-        mastery: false
-      }
+      lair: { carriage:false, boat:false, hidden:false, quarters:false, secure:false, vault:false, workshop:false },
+      training: { insight:false, prowess:false, resolve:false, personal:false, mastery:false },
     },
-    cohorts: [],
-    contacts: [],
-    huntingGrounds: '',
-    notes: ''
+    notes: '',
   });
 
-  // Faction state
-  const [factionData, setFactionData] = useState({
-    isGM: true, // Toggle for GM vs Player view
-    campaignName: 'Diamond is Unbreakable',
-    factions: [
-      {
-        id: 1,
-        name: 'Speedwagon Foundation',
-        type: 'MERCHANT',
-        hold: 'strong',
-        reputation: 3,
-        notes: 'International organization funding bizarre research'
-      },
-      {
-        id: 2,
-        name: 'Morioh Police',
-        type: 'POLITICAL',
-        hold: 'weak',
-        reputation: 1,
-        notes: 'Local law enforcement, unaware of Stand users'
-      },
-      {
-        id: 3,
-        name: 'Angelo Gang',
-        type: 'CRIMINAL',
-        hold: 'weak',
-        reputation: -2,
-        notes: 'Small-time criminals with supernatural connections'
-      },
-      {
-        id: 4,
-        name: 'Higashikata Family',
-        type: 'NOBLE',
-        hold: 'strong',
-        reputation: 2,
-        notes: 'Wealthy family with hidden Stand heritage'
-      }
-    ],
-    relationships: [
-      { sourceId: 1, targetId: 2, value: 1, notes: 'Cooperative relationship' },
-      { sourceId: 1, targetId: 3, value: -3, notes: 'Actively opposing' },
-      { sourceId: 2, targetId: 3, value: -2, notes: 'Criminal investigation' },
-      { sourceId: 4, targetId: 1, value: 2, notes: 'Financial support' }
-    ],
-    crewRelationships: [
-      { factionId: 1, value: 2, notes: 'Aided in investigation' },
-      { factionId: 2, value: 0, notes: 'Neutral standing' },
-      { factionId: 3, value: -1, notes: 'Disrupted operations' },
-      { factionId: 4, value: 1, notes: 'Family connections' }
-    ]
-  });
-  
-  // XP tracking
-  const [xpTracks, setXpTracks] = useState(character?.xp || {
-    insight: 0, prowess: 0, resolve: 0, heritage: 0, playbook: 0
-  });
-  
-  const searchRef = useRef(null);
-  const searchTimeoutRef = useRef(null);
-  const isAuthenticated = true; // Mock authentication
+  // Re-sync when parent passes a new character
+  useEffect(() => {
+    if (!character) return;
+    setCharData({ name:character.name||'', standName:character.standName||'', heritage:character.heritage||'Human', background:character.background||'', look:character.look||'', vice:character.vice||'', crew:character.crew||'' });
+    setStandStats(character.standStats || { power:1,speed:1,range:1,durability:1,precision:1,development:1 });
+    setActionRatings(character.actionRatings || { HUNT:0,STUDY:0,SURVEY:0,TINKER:0,FINESSE:0,PROWL:0,SKIRMISH:0,WRECK:0,BIZARRE:0,COMMAND:0,CONSORT:0,SWAY:0 });
+    setStressFilled(character.stressFilled || 0);
+    setTrauma(character.trauma || { COLD:false,HAUNTED:false,OBSESSED:false,PARANOID:false,RECKLESS:false,SOFT:false,UNSTABLE:false,VICIOUS:false });
+    setRegularArmorUsed(character.regularArmorUsed || 0);
+    setSpecialArmorUsed(character.specialArmorUsed || false);
+    setHarm(character.harm || { level3:[''],level2:['',''],level1:['',''] });
+    setHealingClock(character.healingClock || 0);
+    setCoinFilled(character.coinFilled || 0);
+    setStashBoxes(character.stash || Array(40).fill(false));
+    setXp(character.xp || { insight:0,prowess:0,resolve:0,heritage:0,playbook:0 });
+    setAbilities(character.abilities || []);
+    setClocks(character.clocks || []);
+    setPlaybook(character.playbook || 'Stand');
+  }, [character]);
 
-  // Standard abilities list
-  const standardAbilities = [
-    'Shadow', 'Iron Will', 'Functioning Vice', 'Foresight', 'Calculating',
-    'Like Looking into a Mirror', 'Trust in Me', 'Subterfuge', 'Cloak & Dagger',
-    'Artificer', 'Analyst', 'Fortitude', 'Venomous', 'Bizarre Ward',
-    'Physicker', 'Saboteur', 'Leader', 'Vigorous', 'Bodyguard', 'Savage',
-    'Tough as Nails', 'Sharpshooter', 'Steady Barrage', 'Reflexes',
-    'Bizarre Improvisation', 'Stand Evolution', 'Stand Fusion', 'Stand Recall'
-  ];
+  // ── Derived values ────────────────────────────────────────────────────────────
 
-  // Vice options
-  const viceOptions = [
-    'Gambling', 'Obsession', 'Violence', 'Pleasure', 'Stupor', 'Weird', 
-    'Obligation', 'Faith', 'Luxury', 'Art', 'Competition', 'Power', 
-    'Adventure', 'Solitude', 'Justice'
-  ];
+  const durVal          = standStats.durability;
+  const devVal          = standStats.development;
+  const maxStress       = 9 + DUR_TABLE[durVal].stressBonus;
+  const maxArmorCharges = DUR_TABLE[durVal].armorCharges;
+  const sessionDevXP    = DEV_SESSION_XP[devVal];
 
-  // Calculate attribute dice (each action with at least 1 die contributes 1 to the attribute)
-  const getAttributeDice = (actions) => {
-    return actions.filter(action => actionRatings[action] > 0).length;
+  const totalActionDots  = Object.values(actionRatings).reduce((s, v) => s + v, 0);
+  const totalStandPoints = Object.values(standStats).reduce((s, v) => s + v, 0);
+  const totalXP          = Object.values(xp).reduce((s, v) => s + v, 0);
+  const dotsRemaining    = MAX_CREATION_DOTS - totalActionDots;
+
+  // Level = 1 + floor((coinXP + dotXP − 95) / 10); baseline 95 = 6pts×10 + 7dots×5
+  const totalSpentXP = (totalStandPoints * 10) + (totalActionDots * 5);
+  const pcLevel      = Math.max(1, 1 + Math.floor((totalSpentXP - 95) / 10));
+
+  const getAttributeDice = (actions) => actions.filter(a => actionRatings[a] > 0).length;
+
+  // ── Handlers ─────────────────────────────────────────────────────────────────
+
+  // FIX 1: Creation cap
+  const updateActionRating = (action, newVal) => {
+    if (newVal < 0 || newVal > MAX_DOTS_PER_ACTION_CREATION) return;
+    const delta = newVal - actionRatings[action];
+    if (delta > 0 && totalActionDots + delta > MAX_CREATION_DOTS) return;
+    setActionRatings(p => ({ ...p, [action]: newVal }));
   };
 
-  // XP track management
-  const toggleXP = (track, index) => {
-    const maxValues = {
-      insight: 5,
-      prowess: 5,
-      resolve: 5,
-      heritage: 5,
-      playbook: 10
-    };
-    
-    const currentValue = xpTracks[track];
-    let newValue;
-    
-    if (index < currentValue) {
-      // Clicking on a filled tick - reduce to that level
-      newValue = index;
-    } else {
-      // Clicking on an empty tick - fill up to that level
-      newValue = index + 1;
+  const advanceActionDot = (action) => {
+    if (actionRatings[action] >= 4) return;
+    setActionRatings(p => ({ ...p, [action]: p[action] + 1 }));
+  };
+
+  // FIX 2: Cap at A(4)
+  const incrementStat = (stat) => {
+    if (standStats[stat] >= 4) return;
+    setStandStats(p => ({ ...p, [stat]: p[stat] + 1 }));
+  };
+
+  // FIX 3: No all-F
+  const decrementStat = (stat) => {
+    if (standStats[stat] <= 0) return;
+    const allWouldBeF = Object.entries(standStats).every(([k, v]) => k === stat ? (v - 1) === 0 : v === 0);
+    if (allWouldBeF) return;
+    setStandStats(p => ({ ...p, [stat]: p[stat] - 1 }));
+  };
+
+  const toggleXP = (track, idx) => {
+    const maxVals = { insight:5, prowess:5, resolve:5, heritage:5, playbook:10 };
+    setXp(p => ({ ...p, [track]: Math.min(idx < p[track] ? idx : idx + 1, maxVals[track]) }));
+  };
+
+  const deductXP = (amount) => {
+    let rem = amount;
+    const next = { ...xp };
+    for (const key of ['playbook','insight','prowess','resolve','heritage']) {
+      const take = Math.min(rem, next[key]);
+      next[key] -= take; rem -= take;
+      if (rem === 0) break;
     }
-    
-    // Ensure we don't exceed maximum
-    newValue = Math.min(newValue, maxValues[track]);
-    
-    setXpTracks({ ...xpTracks, [track]: newValue });
+    setXp(next);
   };
 
-  const getTotalXP = () => {
-    return Object.values(xpTracks).reduce((total, xp) => total + xp, 0);
+  // FIX 6: Binary level-up
+  const confirmLevelUp = () => {
+    if (totalXP < 10) return;
+    deductXP(10);
+    if (levelUpChoice === 'stat') { incrementStat(levelUpStat); }
+    else { advanceActionDot(levelUpDot1); advanceActionDot(levelUpDot2); }
+    setShowLevelUp(false);
   };
 
-  // Dice rolling function
-  const rollDice = (actionName, diceCount, isResistanceRoll = false, isDesperateAction = false) => {
+  // FIX 7: Minor advance
+  const spendXPForDot = () => {
+    if (totalXP < 5 || actionRatings[minorAdvanceAction] >= 4) return;
+    deductXP(5);
+    advanceActionDot(minorAdvanceAction);
+  };
+
+  // FIX 8: Resistance critical → stressCost = -1
+  const rollDice = (actionName, diceCount, isResistance = false, isDesperateAction = false) => {
+    let dice, highest, sixes, isCritical, outcome;
     if (diceCount === 0) {
-      // Roll 2 dice and take the lower result for 0 dice
-      const dice1 = Math.floor(Math.random() * 6) + 1;
-      const dice2 = Math.floor(Math.random() * 6) + 1;
-      const result = Math.min(dice1, dice2);
-      
-      let outcome = 'Failure';
-      if (result >= 6) outcome = 'Success';
-      else if (result >= 4) outcome = 'Partial Success';
-      
-      setDiceResult({
-        action: actionName,
-        dice: [dice1, dice2],
-        result: result,
-        outcome: outcome,
-        special: '0 dice: Roll 2d6, take lower',
-        isResistance: isResistanceRoll,
-        stressCost: isResistanceRoll ? 6 - result : null,
-        zeroDice: true,
-        isDesperateAction: isDesperateAction
-      });
+      const d1 = Math.floor(Math.random() * 6) + 1, d2 = Math.floor(Math.random() * 6) + 1;
+      highest = Math.min(d1, d2); dice = [d1, d2]; sixes = 0; isCritical = false;
+      outcome = highest >= 6 ? 'Success' : highest >= 4 ? 'Partial Success' : 'Failure';
     } else {
-      const dice = Array.from({ length: diceCount }, () => Math.floor(Math.random() * 6) + 1);
-      const highest = Math.max(...dice);
-      const sixes = dice.filter(d => d === 6).length;
-      
-      let outcome = 'Failure';
-      if (highest >= 6) {
-        outcome = sixes > 1 ? 'Critical Success' : 'Success';
-      } else if (highest >= 4) {
-        outcome = 'Partial Success';
-      }
-
-      // Resistance critical (2+ sixes): clears 1 stress instead of costing stress
-      const resistanceCritical = isResistanceRoll && sixes > 1;
-
-      setDiceResult({
-        action: actionName,
-        dice: dice,
-        result: highest,
-        outcome: outcome,
-        special: sixes > 1 ? `Critical! (${sixes} sixes)` : '',
-        isResistance: isResistanceRoll,
-        stressCost: resistanceCritical ? -1 : (isResistanceRoll ? 6 - highest : null),
-        resistanceCritical: resistanceCritical,
-        zeroDice: false,
-        isDesperateAction: isDesperateAction
-      });
+      dice    = Array.from({ length: diceCount }, () => Math.floor(Math.random() * 6) + 1);
+      highest = Math.max(...dice); sixes = dice.filter(d => d === 6).length; isCritical = sixes >= 2;
+      outcome = highest >= 6 ? (isCritical ? 'Critical Success' : 'Success') : highest >= 4 ? 'Partial Success' : 'Failure';
     }
-
-    // Auto-mark XP for desperate actions
-    if (isDesperateAction && !isResistanceRoll) {
-      // Mark XP in the appropriate attribute for the action
-      const actionToAttribute = {
-        'HUNT': 'insight', 'STUDY': 'insight', 'SURVEY': 'insight', 'TINKER': 'insight',
-        'FINESSE': 'prowess', 'PROWL': 'prowess', 'SKIRMISH': 'prowess', 'WRECK': 'prowess',
-        'BIZARRE': 'resolve', 'COMMAND': 'resolve', 'CONSORT': 'resolve', 'SWAY': 'resolve'
-      };
-      
-      const attribute = actionToAttribute[actionName];
-      if (attribute && xpTracks[attribute] < 5) {
-        setXpTracks(prev => ({
-          ...prev,
-          [attribute]: Math.min(prev[attribute] + 1, 5)
-        }));
-      }
+    const stressCost = isResistance ? (isCritical ? -1 : Math.max(0, 6 - highest)) : null;
+    setDiceResult({ action: actionName, dice, result: highest, outcome,
+      special: isCritical ? `Critical! (${sixes} sixes)` : '',
+      isResistance, stressCost, zeroDice: diceCount === 0, isDesperateAction, isCritical });
+    if (isDesperateAction && !isResistance) {
+      const attr = ACTION_ATTR[actionName];
+      if (attr) setXp(p => ({ ...p, [attr]: Math.min(p[attr] + 1, 5) }));
     }
   };
 
-  // Clock management
-  const addCustomClock = () => {
+  const addClock = () => {
     const name = prompt('Clock name:');
-    const segments = parseInt(prompt('Number of segments (4, 6, or 8):') || '4');
-    if (name && [4, 6, 8].includes(segments)) {
-      setCustomClocks([...customClocks, {
-        id: Date.now(),
-        name,
-        segments,
-        filled: 0
-      }]);
-    }
-  };
-
-  const updateClock = (clockId, newFilled) => {
-    setCustomClocks(customClocks.map(clock => 
-      clock.id === clockId ? { ...clock, filled: newFilled } : clock
-    ));
-  };
-
-  const deleteClock = (clockId) => {
-    setCustomClocks(customClocks.filter(clock => clock.id !== clockId));
-  };
-
-  // Toggle functions
-  const toggleStress = (index) => {
-    const newStress = [...stressBoxes];
-    newStress[index] = !newStress[index];
-    setStressBoxes(newStress);
-  };
-
-  const toggleTrauma = (trauma) => {
-    setTraumaChecks({ ...traumaChecks, [trauma]: !traumaChecks[trauma] });
-  };
-
-  const toggleArmor = (type) => {
-    setArmorUses({ ...armorUses, [type]: !armorUses[type] });
-  };
-
-  const toggleCoin = (index) => {
-    const newCoin = [...coinBoxes];
-    newCoin[index] = !newCoin[index];
-    setCoinBoxes(newCoin);
-  };
-
-  const toggleStash = (index) => {
-    const newStash = [...stashBoxes];
-    newStash[index] = !newStash[index];
-    setStashBoxes(newStash);
-  };
-
-  const updateActionRating = (action, value) => {
-    setActionRatings({ ...actionRatings, [action]: value });
-  };
-
-  const updateCharacterData = (field, value) => {
-    setCharacterData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const updateHarmEntry = (level, index, value) => {
-    setHarmEntries(prev => ({
-      ...prev,
-      [level]: prev[level].map((entry, i) => i === index ? value : entry)
-    }));
-  };
-
-  const updateCrewData = (field, value) => {
-    setCrewData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const updateFactionData = (field, value) => {
-    setFactionData(prev => ({ ...prev, [field]: value }));
-  };
-
-  // Header logic (simplified without router)
-  const performSearch = async (query) => {
-    if (!query.trim() || !isAuthenticated) {
-      setSearchResults([]);
-      setShowSearchResults(false);
-      return;
-    }
-
-    setSearchLoading(true);
-    try {
-      // Mock search results for demo
-      const mockResults = [
-        { type: 'Character', title: 'Metal Fingers', subtitle: 'Cyborg Stand User', id: 1, url: '/characters/1' },
-        { type: 'Ability', title: 'Iron Will', subtitle: 'Standard Ability', id: 2, url: '/abilities/iron-will' }
-      ];
-      setSearchResults(mockResults);
-      setShowSearchResults(true);
-    } catch (error) {
-      console.error('Search error:', error);
-      setSearchResults([]);
-    } finally {
-      setSearchLoading(false);
-    }
-  };
-
-  const handleSearchChange = (e) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    searchTimeoutRef.current = setTimeout(() => {
-      performSearch(query);
-    }, 300);
-  };
-
-  const handleSearchResultClick = (result) => {
-    setShowSearchResults(false);
-    setSearchQuery('');
-    // Mock navigation - in a real app this would use router
-    console.log('Navigate to:', result.url);
-  };
-
-  const handleSearchSubmit = () => {
-    if (searchQuery.trim()) {
-      performSearch(searchQuery);
-    }
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (searchRef.current && !searchRef.current.contains(event.target)) {
-        setShowSearchResults(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, []);
-  
-  const toggleSection = (section) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
-  
-  useEffect(() => {
-    if (navOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [navOpen]);
-
-  const ProgressClock = ({ size = 80, segments = 4, filled = 0, onClick = null, interactive = false }) => {
-    const radius = size / 2 - 4;
-    const centerX = size / 2;
-    const centerY = size / 2;
-    
-    const segmentAngle = 360 / segments;
-    const segmentPaths = [];
-    
-    for (let i = 0; i < segments; i++) {
-      const startAngle = (i * segmentAngle - 90) * (Math.PI / 180);
-      const endAngle = ((i + 1) * segmentAngle - 90) * (Math.PI / 180);
-      
-      const x1 = centerX + radius * Math.cos(startAngle);
-      const y1 = centerY + radius * Math.sin(startAngle);
-      const x2 = centerX + radius * Math.cos(endAngle);
-      const y2 = centerY + radius * Math.sin(endAngle);
-      
-      const largeArcFlag = segmentAngle > 180 ? 1 : 0;
-      
-      const pathData = [
-        `M ${centerX} ${centerY}`,
-        `L ${x1} ${y1}`,
-        `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
-        'Z'
-      ].join(' ');
-      
-      segmentPaths.push(
-        <path
-          key={i}
-          d={pathData}
-          fill={i < filled ? '#dc2626' : 'transparent'}
-          stroke="#6b7280"
-          strokeWidth="1"
-          className={interactive ? 'cursor-pointer hover:stroke-red-400' : ''}
-          onClick={interactive ? () => {
-            if (onClick) {
-              // If clicking a filled segment, reduce to that level
-              // If clicking an empty segment, fill up to that level
-              const newFilled = i < filled ? i : i + 1;
-              onClick(newFilled);
-            }
-          } : undefined}
-        />
-      );
-    }
-    
-    return (
-      <svg width={size} height={size} className="transform -rotate-90">
-        {segmentPaths}
-        <circle
-          cx={centerX}
-          cy={centerY}
-          r={radius}
-          fill="transparent"
-          stroke="#6b7280"
-          strokeWidth="2"
-        />
-      </svg>
-    );
-  };
-
-  const addAbility = (abilityName, type = 'standard') => {
-    const newAbility = {
-      id: Date.now(),
-      name: abilityName,
-      type: type,
-      description: type === 'custom' ? 'Custom ability description...' : ''
-    };
-    setSelectedAbilities([...selectedAbilities, newAbility]);
-  };
-
-  const removeAbility = (abilityId) => {
-    setSelectedAbilities(selectedAbilities.filter(ability => ability.id !== abilityId));
+    const segs = parseInt(prompt('Segments (4, 6, 8):') || '4');
+    if (name && [4, 6, 8].includes(segs))
+      setClocks(p => [...p, { id: Date.now(), name, segments: segs, filled: 0 }]);
   };
 
   const handleSave = () => {
-    if (activeMode === 'CHARACTER MODE') {
-      const updatedCharacter = {
-        ...characterData,
-        actionRatings,
-        standStats,
-        stress: stressBoxes,
-        trauma: traumaChecks,
-        armor: armorUses,
-        harmEntries,
-        coin: coinBoxes,
-        stash: stashBoxes,
-        healingClock,
-        xp: xpTracks,
-        abilities: selectedAbilities,
-        clocks: customClocks,
-        id: character?.id || Date.now(),
-        lastModified: new Date().toISOString()
-      };
-      
-      onSave(updatedCharacter);
-    } else if (activeMode === 'CREW MODE') {
-      // Save crew data - you might want to pass this to a different handler
-      const updatedCrew = {
-        ...crewData,
-        id: Date.now(),
-        lastModified: new Date().toISOString()
-      };
-      
-      // For now, just log it - you'd want to implement crew saving
-      console.log('Saving crew:', updatedCrew);
-    } else if (activeMode === 'FACTION MODE') {
-      // Save faction data
-      const updatedFactionData = {
-        ...factionData,
-        lastModified: new Date().toISOString()
-      };
-      
-      console.log('Saving faction data:', updatedFactionData);
-    }
+    if (onSave) onSave({
+      ...charData, standStats, actionRatings, stressFilled, trauma,
+      regularArmorUsed, specialArmorUsed, harm, healingClock,
+      coinFilled, stash: stashBoxes, xp, abilities, clocks, playbook,
+      id: character?.id || null, lastModified: new Date().toISOString(),
+    });
   };
 
+  // ── Styles ────────────────────────────────────────────────────────────────────
+
+  const S = {
+    page:  { fontFamily:'monospace', fontSize:'13px', background:'#000', color:'#fff', minHeight:'100vh' },
+    hdr:   { background:'#1f2937', padding:'8px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:'1px solid #4b5563', position:'sticky', top:0, zIndex:10 },
+    card:  { background:'#111827', border:'1px solid #374151', borderRadius:'4px', padding:'12px', marginBottom:'12px' },
+    lbl:   { color:'#f87171', fontSize:'11px', fontWeight:'bold', marginBottom:'4px', display:'block' },
+    inp:   { background:'transparent', color:'#fff', border:'none', borderBottom:'1px solid #4b5563', padding:'2px 4px', width:'100%', fontFamily:'monospace', fontSize:'13px', outline:'none', boxSizing:'border-box' },
+    sel:   { background:'#374151', color:'#fff', border:'1px solid #4b5563', padding:'4px 8px', fontSize:'12px', fontFamily:'monospace' },
+    btn:   { padding:'4px 12px', borderRadius:'4px', fontSize:'12px', cursor:'pointer', border:'none', fontFamily:'monospace' },
+    g2:    { display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px' },
+    g3:    { display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'16px' },
+    warn:  { background:'#7f1d1d', border:'1px solid #b91c1c', borderRadius:'4px', padding:'4px 8px', fontSize:'11px', color:'#fca5a5' },
+    info:  { background:'#1e1b4b', border:'1px solid #4338ca', borderRadius:'4px', padding:'4px 8px', fontSize:'11px', color:'#a5b4fc' },
+    green: { background:'#14532d', border:'1px solid #166534', borderRadius:'4px', padding:'4px 8px', fontSize:'11px', color:'#86efac' },
+  };
+
+  const dotColor = dotsRemaining === 0 ? '#f87171' : dotsRemaining <= 2 ? '#eab308' : '#6b7280';
+
+  // ── Render ────────────────────────────────────────────────────────────────────
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-90 flex items-start justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-black text-white font-mono text-sm max-w-7xl w-full">
-        {/* Header */}
-        <header className="bg-gray-800 px-4 py-2 flex items-center justify-between border-b border-gray-600 sticky top-0 z-10">
-          <div className="text-xl font-bold text-white cursor-pointer">
-            1(800)BIZARRE - {activeMode}
-          </div>
-          <div className="flex items-center space-x-4">
-            {isAuthenticated && (
-              <div className="search-container desktop-search" ref={searchRef}>
-                <div className="flex items-center">
-                  <input 
-                    type="text" 
-                    className="bg-gray-700 text-white border border-gray-600 rounded px-3 py-1 text-sm" 
-                    placeholder="Search characters, campaigns, abilities..." 
-                    value={searchQuery}
-                    onChange={handleSearchChange}
-                    onFocus={() => searchQuery && setShowSearchResults(true)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSearchSubmit()}
-                  />
-                  <button onClick={handleSearchSubmit} className="ml-2 text-gray-400 hover:text-white">🔍</button>
-                </div>
-                
-                {showSearchResults && (
-                  <div className="absolute top-full left-0 right-0 bg-gray-800 border border-gray-600 mt-1 rounded shadow-lg z-50">
-                    {searchLoading ? (
-                      <div className="p-3 text-gray-400">Searching...</div>
-                    ) : searchResults.length > 0 ? (
-                      <>
-                        <div className="p-2 text-xs text-gray-400 border-b border-gray-600">
-                          Search Results ({searchResults.length})
-                        </div>
-                        {searchResults.map((result, index) => (
-                          <div 
-                            key={`${result.type}-${result.id}-${index}`}
-                            className="p-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0"
-                            onClick={() => handleSearchResultClick(result)}
-                          >
-                            <div className="text-xs text-purple-400">{result.type}</div>
-                            <div className="text-white font-medium">{result.title}</div>
-                            <div className="text-xs text-gray-400">{result.subtitle}</div>
-                          </div>
-                        ))}
-                      </>
-                    ) : searchQuery ? (
-                      <div className="p-3 text-gray-400">
-                        No results found for "{searchQuery}"
-                      </div>
-                    ) : null}
+    <div style={S.page}>
+
+      {/* Header */}
+      <div style={S.hdr}>
+        <div style={{ fontSize:'18px', fontWeight:'bold' }}>1(800)BIZARRE — {activeMode}</div>
+        <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
+          <select value={activeMode} onChange={e => setActiveMode(e.target.value)} style={S.sel}>
+            <option>CHARACTER MODE</option>
+            <option>CREW MODE</option>
+          </select>
+          <button onClick={handleSave} style={{ ...S.btn, background:'#16a34a', color:'#fff' }}>Save</button>
+          {onClose && <button onClick={onClose} aria-label="Close character sheet" style={{ background:'none', border:'none', color:'#9ca3af', cursor:'pointer', fontSize:'18px' }}>✕</button>}
+        </div>
+      </div>
+
+      <div style={{ padding:'16px', maxWidth:'1400px', margin:'0 auto' }}>
+
+        {activeMode === 'CHARACTER MODE' && (
+          <>
+            {/* Character bar */}
+            <div style={{ ...S.card, display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'16px' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
+                <span style={{ color:'#9ca3af', fontSize:'11px', fontWeight:'bold' }}>CURRENT CHARACTER</span>
+                <span style={{ fontWeight:'bold' }}>{charData.name || 'Unnamed Character'}</span>
+                {charData.standName && <span style={{ color:'#a78bfa' }}>&#12300;{charData.standName}&#12301;</span>}
+              </div>
+              <div style={{ display:'flex', gap:'12px', alignItems:'center' }}>
+                {/* Level badge */}
+                <div style={{ background:'#1e1b4b', border:'1px solid #4338ca', borderRadius:'4px', padding:'4px 10px', textAlign:'center' }}>
+                  <div style={{ fontSize:'10px', color:'#818cf8', fontWeight:'bold' }}>LEVEL</div>
+                  <div style={{ fontSize:'20px', fontWeight:'bold', lineHeight:1,
+                    color: pcLevel >= 7 ? '#f87171' : pcLevel >= 4 ? '#fbbf24' : '#a5b4fc' }}>
+                    {pcLevel}
                   </div>
+                  <div style={{ fontSize:'9px', color:'#4b5563', marginTop:'1px' }}>{totalSpentXP} XP spent</div>
+                </div>
+                {allCharacters.length > 1 && (
+                  <select style={S.sel} onChange={e => {
+                    const c = allCharacters.find(ch => ch.id === parseInt(e.target.value));
+                    if (c && onSwitchCharacter) onSwitchCharacter(c);
+                  }}>
+                    <option value="">Switch character&#8230;</option>
+                    {allCharacters.map(c => <option key={c.id} value={c.id}>{c.name || 'Unnamed'}</option>)}
+                  </select>
+                )}
+                {onCreateNew && (
+                  <button onClick={onCreateNew} style={{ ...S.btn, background:'#16a34a', color:'#fff' }}>+ New</button>
                 )}
               </div>
-            )}
-            <select 
-              value={activeMode}
-              onChange={(e) => setActiveMode(e.target.value)}
-              className="bg-gray-600 text-white border border-gray-500 px-2 py-1 text-xs"
-            >
-              <option>CHARACTER MODE</option>
-              <option>CREW MODE</option>
-              <option>FACTION MODE</option>
-            </select>
-            <button 
-              onClick={handleSave}
-              className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-xs font-bold"
-            >
-              Save
-            </button>
-            <button 
-              onClick={onClose}
-              className="text-gray-400 hover:text-white"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-        </header>
-
-        <div className="p-4">
-          {/* Debug indicator */}
-          <div className="mb-2 text-xs text-gray-400">
-            Active Mode: {activeMode}
-          </div>
-          
-          {activeMode === 'CHARACTER MODE' && (
-            <>
-              {/* Character Selector/Creator */}
-              <div className="mb-4 bg-gray-800 border border-gray-600 rounded p-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="text-xs text-gray-400 font-bold">CURRENT CHARACTER</div>
-                    <div className="text-white font-bold">
-                      {characterData.name || 'Unnamed Character'}
-                    </div>
-                    {characterData.standName && (
-                      <div className="text-purple-400 text-sm">
-                        「{characterData.standName}」
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    {/* Character Switcher Dropdown */}
-                    {allCharacters.length > 0 && (
-                      <select 
-                        className="bg-gray-700 text-white border border-gray-600 px-3 py-1 text-xs rounded"
-                        value={character?.id || ''}
-                        onChange={(e) => {
-                          const selectedChar = allCharacters.find(c => c.id === parseInt(e.target.value));
-                          if (selectedChar && onSwitchCharacter) {
-                            onSwitchCharacter(selectedChar);
-                          }
-                        }}
-                      >
-                        <option value="">Switch Character...</option>
-                        {allCharacters.map(char => (
-                          <option key={char.id} value={char.id}>
-                            {char.name || 'Unnamed'} {char.standName ? `- 「${char.standName}」` : ''}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                    
-                    {/* Create New Character Button */}
-                    <button 
-                      onClick={() => onCreateNew && onCreateNew()}
-                      className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-xs font-bold text-white transition-colors"
-                      title="Create New Character"
-                    >
-                      <Plus className="w-3 h-3" />
-                      <span>New Character</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Character Sheet Content */}
-              {/* Character Info Section */}
-          <div className="grid grid-cols-2 gap-8 mb-6">
-            {/* Left Side */}
-            <div className="space-y-4">
-              {/* Name and Details */}
-              <div className="space-y-2">
-                <div className="flex items-center space-x-4">
-                  <div className="flex-1">
-                    <div className="text-red-400 text-xs font-bold">NAME</div>
-                    <div className="border-b border-gray-600 pb-1">
-                      <input 
-                        type="text" 
-                        value={characterData.name}
-                        onChange={(e) => updateCharacterData('name', e.target.value)}
-                        className="bg-transparent w-full text-white font-bold" 
-                        placeholder="Character Name"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-red-400 text-xs font-bold">CREW</div>
-                    <div className="border-b border-gray-600 pb-1">
-                      <input 
-                        type="text" 
-                        value={characterData.crew}
-                        onChange={(e) => updateCharacterData('crew', e.target.value)}
-                        className="bg-transparent w-full text-white" 
-                        placeholder="Crew Name"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-4">
-                  <div className="flex-1">
-                    <div className="text-red-400 text-xs font-bold">STAND NAME</div>
-                    <div className="border-b border-gray-600 pb-1">
-                      <input 
-                        type="text" 
-                        value={characterData.standName}
-                        onChange={(e) => updateCharacterData('standName', e.target.value)}
-                        className="bg-transparent w-full text-white" 
-                        placeholder="「Stand Name」"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-red-400 text-xs font-bold">LOOK</div>
-                  <div className="border-b border-gray-600 pb-1">
-                    <input 
-                      type="text" 
-                      value={characterData.look}
-                      onChange={(e) => updateCharacterData('look', e.target.value)}
-                      className="bg-transparent w-full text-white" 
-                      placeholder="Character appearance and style"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-4">
-                  <div className="flex-1">
-                    <div className="text-red-400 text-xs font-bold">HERITAGE</div>
-                    <div className="border-b border-gray-600 pb-1">
-                      <input 
-                        type="text" 
-                        value={characterData.heritage}
-                        onChange={(e) => updateCharacterData('heritage', e.target.value)}
-                        className="bg-transparent w-full text-white" 
-                        placeholder="Heritage"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-red-400 text-xs font-bold">BACKGROUND</div>
-                    <div className="border-b border-gray-600 pb-1">
-                      <input 
-                        type="text" 
-                        value={characterData.background}
-                        onChange={(e) => updateCharacterData('background', e.target.value)}
-                        className="bg-transparent w-full text-white" 
-                        placeholder="Background"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-red-400 text-xs font-bold">VICE / PURVEYOR</div>
-                  <div className="border-b border-gray-600 pb-1 flex items-center justify-between">
-                    <div className="flex items-center space-x-2 flex-1">
-                      <select 
-                        value={characterData.vice}
-                        onChange={(e) => updateCharacterData('vice', e.target.value)}
-                        className="bg-gray-700 text-white border border-gray-600 px-2 py-1 text-xs"
-                      >
-                        <option value="">Select Vice</option>
-                        {viceOptions.map(vice => (
-                          <option key={vice} value={vice}>{vice}</option>
-                        ))}
-                      </select>
-                      <input type="text" placeholder="Purveyor name/details" className="bg-transparent flex-1 text-white text-xs" />
-                    </div>
-                    <button className="bg-gray-600 px-2 py-1 text-xs border border-gray-500 ml-2">Indulge Vice</button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Stress & Trauma */}
-              <div className="space-y-4">
-                <div>
-                  <div className="text-red-400 text-xs font-bold mb-1">STRESS</div>
-                  <div className="flex space-x-1">
-                    {stressBoxes.map((filled, i) => (
-                      <div 
-                        key={i} 
-                        className={`w-6 h-6 border border-gray-600 cursor-pointer hover:bg-gray-600 ${
-                          filled ? 'bg-red-600' : 'bg-gray-800'
-                        }`}
-                        onClick={() => toggleStress(i)}
-                      ></div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-red-400 text-xs font-bold mb-1">TRAUMA</div>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-                    {Object.entries(traumaChecks).map(([trauma, checked]) => (
-                      <label key={trauma} className="flex items-center space-x-1 cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          className="w-3 h-3" 
-                          checked={checked}
-                          onChange={() => toggleTrauma(trauma)}
-                        />
-                        <span>{trauma}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Harm */}
-              <div>
-                <div className="text-red-400 text-xs font-bold mb-2">HARM</div>
-                <div className="flex space-x-4">
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs text-gray-400 w-16">NEED HELP</span>
-                      <div className="flex-1 border border-gray-600 h-6 bg-gray-800">
-                        <input 
-                          type="text" 
-                          className="bg-transparent w-full h-full px-2 text-white text-xs" 
-                          placeholder="Level 3 harm" 
-                          value={harmEntries.level3[0]}
-                          onChange={(e) => updateHarmEntry('level3', 0, e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs text-gray-400 w-16">-1D</span>
-                      <div className="flex-1 border border-gray-600 h-6 bg-gray-800">
-                        <input 
-                          type="text" 
-                          className="bg-transparent w-full h-full px-2 text-white text-xs" 
-                          placeholder="Level 2 harm" 
-                          value={harmEntries.level2[0]}
-                          onChange={(e) => updateHarmEntry('level2', 0, e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs text-gray-400 w-16">-1D</span>
-                      <div className="flex-1 border border-gray-600 h-6 bg-gray-800">
-                        <input 
-                          type="text" 
-                          className="bg-transparent w-full h-full px-2 text-white text-xs" 
-                          placeholder="Level 2 harm" 
-                          value={harmEntries.level2[1]}
-                          onChange={(e) => updateHarmEntry('level2', 1, e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs text-gray-400 w-16">LESS EFFECT</span>
-                      <div className="flex-1 border border-gray-600 h-6 bg-gray-800">
-                        <input 
-                          type="text" 
-                          className="bg-transparent w-full h-full px-2 text-white text-xs" 
-                          placeholder="Level 1 harm" 
-                          value={harmEntries.level1[0]}
-                          onChange={(e) => updateHarmEntry('level1', 0, e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs text-gray-400 w-16">LESS EFFECT</span>
-                      <div className="flex-1 border border-gray-600 h-6 bg-gray-800">
-                        <input 
-                          type="text" 
-                          className="bg-transparent w-full h-full px-2 text-white text-xs" 
-                          placeholder="Level 1 harm" 
-                          value={harmEntries.level1[1]}
-                          onChange={(e) => updateHarmEntry('level1', 1, e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <div className="text-xs text-gray-400 mb-1">progress clock</div>
-                    <ProgressClock 
-                      size={60} 
-                      segments={4} 
-                      filled={healingClock}
-                      interactive={true}
-                      onClick={setHealingClock}
-                    />
-                    <div className="text-xs text-gray-400 mt-1">HEALING</div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="text-xs text-gray-400">ARMOR USES</div>
-                    <div className="space-y-1">
-                      <div className="flex items-center space-x-2">
-                        <input 
-                          type="checkbox" 
-                          className="w-3 h-3" 
-                          checked={armorUses.armor}
-                          onChange={() => toggleArmor('armor')}
-                        />
-                        <span className="text-xs">ARMOR</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <input 
-                          type="checkbox" 
-                          className="w-3 h-3" 
-                          checked={armorUses.heavy}
-                          onChange={() => toggleArmor('heavy')}
-                        />
-                        <span className="text-xs">+HEAVY</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <input 
-                          type="checkbox" 
-                          className="w-3 h-3" 
-                          checked={armorUses.special}
-                          onChange={() => toggleArmor('special')}
-                        />
-                        <span className="text-xs">SPECIAL</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Coin */}
-              <div>
-                <div className="text-red-400 text-xs font-bold mb-1">COIN</div>
-                <div className="flex space-x-1">
-                  {coinBoxes.map((filled, i) => (
-                    <div 
-                      key={i} 
-                      className={`w-6 h-6 border border-gray-600 cursor-pointer hover:bg-gray-600 ${
-                        filled ? 'bg-yellow-600' : 'bg-gray-800'
-                      }`}
-                      onClick={() => toggleCoin(i)}
-                    ></div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-8 gap-1 mt-2">
-                  {stashBoxes.map((filled, i) => (
-                    <div 
-                      key={i} 
-                      className={`w-4 h-4 border border-gray-600 text-xs flex items-center justify-center cursor-pointer hover:bg-gray-600 ${
-                        filled ? 'bg-yellow-600' : 'bg-gray-800'
-                      }`}
-                      onClick={() => toggleStash(i)}
-                    >
-                      {filled ? '⬛' : ''}
-                    </div>
-                  ))}
-                </div>
-                <div className="text-xs text-gray-400 mt-1">STASH</div>
-              </div>
             </div>
 
-            {/* Right Side - Playbook */}
-            <div className="bg-gray-800 p-4 border border-gray-600">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-400">PLAYBOOK</h2>
-                <div className="text-xs text-gray-400">A SHORT PLAYBOOK<br />DESCRIPTION</div>
-              </div>
-              
-              <div className="mb-4 text-xs text-gray-300">
-                Choose your playbook type and customize your abilities to match your character's unique powers and fighting style.
-              </div>
+            <div style={S.g2}>
 
-              {/* Playbook Type Selector */}
-              <div className="mb-4">
-                <div className="text-xs font-bold mb-2">PLAYBOOK TYPE</div>
-                <select className="bg-gray-700 text-white border border-gray-600 px-2 py-1 text-xs w-full">
-                  <option>Stand</option>
-                  <option>Hamon</option>
-                  <option>Spin</option>
-                </select>
-              </div>
+              {/* LEFT COLUMN */}
+              <div>
 
-              {/* Stand Coin Stats */}
-              <div className="mb-6">
-                <div className="text-xs font-bold mb-2">STAND COIN STATS</div>
-                <div className="space-y-2">
-                  {Object.entries(standStats).map(([stat, value]) => (
-                    <div key={stat} className="flex items-center justify-between text-xs">
-                      <span className="text-gray-300 capitalize font-semibold w-20">{stat.toUpperCase()}</span>
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => setStandStats(prev => ({ ...prev, [stat]: Math.max(0, value - 1) }))}
-                          className="w-5 h-5 bg-red-600 hover:bg-red-700 rounded text-white text-xs font-bold"
-                          disabled={value === 0}
-                        >
-                          -
-                        </button>
-                        <span className="w-8 text-center text-white font-bold">{value}</span>
-                        <button
-                          onClick={() => setStandStats(prev => ({ ...prev, [stat]: Math.min(4, value + 1) }))}
-                          className="w-5 h-5 bg-green-600 hover:bg-green-700 rounded text-white text-xs font-bold"
-                          disabled={value === 4}
-                        >
-                          +
-                        </button>
-                        <span className="text-gray-400 text-xs ml-2">
-                          {value === 0 ? 'F' : value === 1 ? 'D' : value === 2 ? 'C' : value === 3 ? 'B' : 'A'}
-                        </span>
-                      </div>
+                {/* Identity */}
+                <div style={S.card}>
+                  <div style={S.g2}>
+                    <div><span style={S.lbl}>NAME</span><input style={S.inp} value={charData.name} onChange={e => setCharData(p => ({ ...p, name: e.target.value }))} placeholder="Character Name" /></div>
+                    <div><span style={S.lbl}>CREW</span><input style={S.inp} value={charData.crew} onChange={e => setCharData(p => ({ ...p, crew: e.target.value }))} placeholder="Crew Name" /></div>
+                  </div>
+                  <div style={{ marginTop:'8px' }}>
+                    <span style={S.lbl}>STAND NAME</span>
+                    <input style={S.inp} value={charData.standName} onChange={e => setCharData(p => ({ ...p, standName: e.target.value }))} placeholder="Stand Name" />
+                  </div>
+                  <div style={{ marginTop:'8px' }}>
+                    <span style={S.lbl}>LOOK</span>
+                    <input style={S.inp} value={charData.look} onChange={e => setCharData(p => ({ ...p, look: e.target.value }))} placeholder="Appearance and style" />
+                  </div>
+                  <div style={{ ...S.g2, marginTop:'8px' }}>
+                    <div><span style={S.lbl}>HERITAGE</span><input style={S.inp} value={charData.heritage} onChange={e => setCharData(p => ({ ...p, heritage: e.target.value }))} /></div>
+                    <div><span style={S.lbl}>BACKGROUND</span><input style={S.inp} value={charData.background} onChange={e => setCharData(p => ({ ...p, background: e.target.value }))} /></div>
+                  </div>
+                  <div style={{ marginTop:'8px' }}>
+                    <span style={S.lbl}>VICE / PURVEYOR</span>
+                    <div style={{ display:'flex', gap:'8px' }}>
+                      <select value={charData.vice} onChange={e => setCharData(p => ({ ...p, vice: e.target.value }))} style={S.sel}>
+                        <option value="">Select Vice</option>
+                        {VICE_OPTIONS.map(v => <option key={v}>{v}</option>)}
+                      </select>
+                      <input style={{ ...S.inp, flex:1 }} placeholder="Purveyor details" />
                     </div>
-                  ))}
+                  </div>
                 </div>
-                <div className="mt-2 text-xs text-gray-400">
-                  Total: {Object.values(standStats).reduce((sum, val) => sum + val, 0)}/10 points
-                </div>
-                {/* Derived stats from Stand grades (capped at A=4 for players) */}
-                <div className="mt-2 space-y-1 text-xs border-t border-gray-600 pt-2">
-                  <div className="text-gray-400 font-semibold">Derived:</div>
-                  <div className="flex justify-between text-gray-300">
-                    <span>Armor charges</span>
-                    <span className="text-blue-400 font-bold">
-                      {standStats.durability <= 0 ? 1
-                        : standStats.durability === 1 ? 2
-                        : standStats.durability === 2 ? 3
-                        : standStats.durability >= 3 ? 4
-                        : 1}
+
+                {/* Stress and Trauma */}
+                <div style={S.card}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:'6px' }}>
+                    <span style={{ ...S.lbl, marginBottom:0 }}>STRESS</span>
+                    <span style={{ fontSize:'11px', color:'#6b7280' }}>
+                      {stressFilled}/{maxStress}
+                      {DUR_TABLE[durVal].stressBonus !== 0 && (
+                        <span style={{ color: DUR_TABLE[durVal].stressBonus > 0 ? '#34d399' : '#f87171' }}>
+                          {' '}({DUR_TABLE[durVal].stressBonus > 0 ? '+' : ''}{DUR_TABLE[durVal].stressBonus} DUR)
+                        </span>
+                      )}
                     </span>
                   </div>
-                  <div className="flex justify-between text-gray-300">
-                    <span>Dev. session XP bonus</span>
-                    <span className="text-yellow-400 font-bold">+{standStats.development}</span>
+                  <div style={{ display:'flex', gap:'3px', flexWrap:'wrap', marginBottom:'12px' }}>
+                    {Array.from({ length: maxStress }, (_, i) => (
+                      <div key={i}
+                        onClick={() => setStressFilled(i < stressFilled ? i : i + 1)}
+                        style={{ width:'22px', height:'22px', border:'1px solid #4b5563', cursor:'pointer',
+                          background: i < stressFilled ? '#dc2626' : '#1f2937' }} />
+                    ))}
                   </div>
-                </div>
-              </div>
-
-              {/* Action Ratings */}
-              <div className="grid grid-cols-3 gap-6 mb-6">
-                {/* Insight */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <div 
-                      className="text-xs font-bold cursor-pointer hover:text-purple-400"
-                      onClick={() => rollDice('Insight', getAttributeDice(['HUNT', 'STUDY', 'SURVEY', 'TINKER']), true)}
-                      title="Click to make Resistance Roll (resists mental/knowledge-based consequences)"
-                    >
-                      INSIGHT
-                    </div>
-                    <div className="flex space-x-1">
-                      {[1, 2, 3, 4].map((dot) => (
-                        <div 
-                          key={dot} 
-                          className={`w-2 h-2 rounded-full border border-gray-500 ${
-                            dot <= getAttributeDice(['HUNT', 'STUDY', 'SURVEY', 'TINKER']) ? 'bg-blue-500' : 'bg-gray-700'
-                          }`}
-                          title={`Insight attribute dots: ${getAttributeDice(['HUNT', 'STUDY', 'SURVEY', 'TINKER'])}`}
-                        ></div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    {['HUNT', 'STUDY', 'SURVEY', 'TINKER'].map((action) => (
-                      <div key={action} className="flex items-center justify-between">
-                        <span 
-                          className="text-xs cursor-pointer hover:text-purple-400"
-                          onClick={() => rollDice(action, actionRatings[action], false)}
-                          title={`Click to roll ${actionRatings[action]} dice for ${action}`}
-                        >
-                          {action}
-                        </span>
-                        <div className="flex space-x-1">
-                          {[1, 2, 3, 4].map((dot) => (
-                            <div 
-                              key={dot} 
-                              className={`w-3 h-3 rounded-full border border-gray-500 cursor-pointer hover:bg-purple-400 ${
-                                dot <= actionRatings[action] ? 'bg-purple-600' : 'bg-gray-700'
-                              }`}
-                              onClick={() => updateActionRating(action, dot <= actionRatings[action] ? dot - 1 : dot)}
-                            ></div>
-                          ))}
-                        </div>
-                      </div>
+                  <span style={S.lbl}>TRAUMA</span>
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:'8px' }}>
+                    {Object.entries(trauma).map(([t, checked]) => (
+                      <label key={t} style={{ display:'flex', alignItems:'center', gap:'4px', cursor:'pointer', fontSize:'11px' }}>
+                        <input type="checkbox" checked={checked} onChange={() => setTrauma(p => ({ ...p, [t]: !p[t] }))} />
+                        {t}
+                      </label>
                     ))}
                   </div>
                 </div>
 
-                {/* Prowess */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <div 
-                      className="text-xs font-bold cursor-pointer hover:text-purple-400"
-                      onClick={() => rollDice('Prowess', getAttributeDice(['FINESSE', 'PROWL', 'SKIRMISH', 'WRECK']), true)}
-                      title="Click to make Resistance Roll (resists physical consequences)"
-                    >
-                      PROWESS
+                {/* Harm + Armor */}
+                <div style={S.card}>
+                  <div style={{ display:'flex', gap:'16px' }}>
+                    <div style={{ flex:1 }}>
+                      <span style={S.lbl}>HARM</span>
+                      {[
+                        { key:'level3', label:'NEED HELP', count:1 },
+                        { key:'level2', label:'-1D',       count:2 },
+                        { key:'level1', label:'LESS EFFECT',count:2 },
+                      ].map(({ key, label, count }) =>
+                        Array.from({ length: count }, (_, idx) => (
+                          <div key={`${key}-${idx}`} style={{ display:'flex', alignItems:'center', gap:'6px', marginBottom:'4px' }}>
+                            <span style={{ fontSize:'10px', color:'#9ca3af', width:'68px', flexShrink:0 }}>{label}</span>
+                            <input
+                              style={{ ...S.inp, border:'1px solid #374151', background:'#0a0a0a', padding:'2px 6px', fontSize:'11px' }}
+                              placeholder={`Lv${key.slice(-1)} harm`}
+                              value={harm[key][idx]}
+                              onChange={e => setHarm(p => ({ ...p, [key]: p[key].map((v, i) => i === idx ? e.target.value : v) }))}
+                            />
+                          </div>
+                        ))
+                      )}
                     </div>
-                    <div className="flex space-x-1">
-                      {[1, 2, 3, 4].map((dot) => (
-                        <div 
-                          key={dot} 
-                          className={`w-2 h-2 rounded-full border border-gray-500 ${
-                            dot <= getAttributeDice(['FINESSE', 'PROWL', 'SKIRMISH', 'WRECK']) ? 'bg-blue-500' : 'bg-gray-700'
-                          }`}
-                          title={`Prowess attribute dots: ${getAttributeDice(['FINESSE', 'PROWL', 'SKIRMISH', 'WRECK'])}`}
-                        ></div>
-                      ))}
+                    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'4px' }}>
+                      <span style={{ fontSize:'10px', color:'#9ca3af' }}>HEALING</span>
+                      <ProgressClock size={55} segments={4} filled={healingClock} interactive onClick={setHealingClock} />
                     </div>
-                  </div>
-                  <div className="space-y-1">
-                    {['FINESSE', 'PROWL', 'SKIRMISH', 'WRECK'].map((action) => (
-                      <div key={action} className="flex items-center justify-between">
-                        <span 
-                          className="text-xs cursor-pointer hover:text-purple-400"
-                          onClick={() => rollDice(action, actionRatings[action], false)}
-                          title={`Click to roll ${actionRatings[action]} dice for ${action}`}
-                        >
-                          {action}
-                        </span>
-                        <div className="flex space-x-1">
-                          {[1, 2, 3, 4].map((dot) => (
-                            <div 
-                              key={dot} 
-                              className={`w-3 h-3 rounded-full border border-gray-500 cursor-pointer hover:bg-purple-400 ${
-                                dot <= actionRatings[action] ? 'bg-purple-600' : 'bg-gray-700'
-                              }`}
-                              onClick={() => updateActionRating(action, dot <= actionRatings[action] ? dot - 1 : dot)}
-                            ></div>
+                    {/* FIX 4: Armor charges from DUR_TABLE */}
+                    <div style={{ minWidth:'90px' }}>
+                      <span style={{ fontSize:'10px', color:'#9ca3af', display:'block', marginBottom:'4px' }}>
+                        ARMOR <span style={{ color:'#f59e0b' }}>({maxArmorCharges} chg)</span>
+                      </span>
+                      {maxArmorCharges === 0 ? (
+                        <div style={{ fontSize:'10px', color:'#6b7280' }}>F-DUR: no armor</div>
+                      ) : (
+                        <div style={{ display:'flex', gap:'3px', marginBottom:'6px' }}>
+                          {Array.from({ length: maxArmorCharges }, (_, i) => (
+                            <div key={i}
+                              onClick={() => setRegularArmorUsed(i < regularArmorUsed ? i : i + 1)}
+                              title={i < regularArmorUsed ? 'Used — click to restore' : 'Click to spend'}
+                              style={{ width:'20px', height:'20px', border:'1px solid #4b5563', cursor:'pointer',
+                                background: i < regularArmorUsed ? '#b45309' : '#1f2937' }} />
                           ))}
                         </div>
-                      </div>
+                      )}
+                      <label style={{ display:'flex', alignItems:'center', gap:'4px', cursor:'pointer', fontSize:'11px' }}>
+                        <input type="checkbox" checked={specialArmorUsed} onChange={e => setSpecialArmorUsed(e.target.checked)} />
+                        SPECIAL
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Coin and Stash */}
+                <div style={S.card}>
+                  <span style={S.lbl}>COIN</span>
+                  <div style={{ display:'flex', gap:'4px', marginBottom:'8px' }}>
+                    {Array.from({ length: 4 }, (_, i) => (
+                      <div key={i} onClick={() => setCoinFilled(i < coinFilled ? i : i + 1)}
+                        style={{ width:'24px', height:'24px', border:'1px solid #4b5563', cursor:'pointer',
+                          background: i < coinFilled ? '#ca8a04' : '#1f2937' }} />
+                    ))}
+                  </div>
+                  <span style={S.lbl}>STASH</span>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(10, 1fr)', gap:'2px' }}>
+                    {stashBoxes.map((f, i) => (
+                      <div key={i} onClick={() => setStashBoxes(p => p.map((v, j) => j === i ? !v : v))}
+                        style={{ width:'16px', height:'16px', border:'1px solid #2d2d2d', cursor:'pointer',
+                          background: f ? '#ca8a04' : '#0a0a0a' }} />
                     ))}
                   </div>
                 </div>
 
-                {/* Resolve */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <div 
-                      className="text-xs font-bold cursor-pointer hover:text-purple-400"
-                      onClick={() => rollDice('Resolve', getAttributeDice(['BIZARRE', 'COMMAND', 'CONSORT', 'SWAY']), true)}
-                      title="Click to make Resistance Roll (resists emotional/mental consequences)"
-                    >
-                      RESOLVE
-                    </div>
-                    <div className="flex space-x-1">
-                      {[1, 2, 3, 4].map((dot) => (
-                        <div 
-                          key={dot} 
-                          className={`w-2 h-2 rounded-full border border-gray-500 ${
-                            dot <= getAttributeDice(['BIZARRE', 'COMMAND', 'CONSORT', 'SWAY']) ? 'bg-blue-500' : 'bg-gray-700'
-                          }`}
-                          title={`Resolve attribute dots: ${getAttributeDice(['BIZARRE', 'COMMAND', 'CONSORT', 'SWAY'])}`}
-                        ></div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    {['BIZARRE', 'COMMAND', 'CONSORT', 'SWAY'].map((action) => (
-                      <div key={action} className="flex items-center justify-between">
-                        <span 
-                          className="text-xs cursor-pointer hover:text-purple-400"
-                          onClick={() => rollDice(action, actionRatings[action], false)}
-                          title={`Click to roll ${actionRatings[action]} dice for ${action}`}
-                        >
-                          {action}
-                        </span>
-                        <div className="flex space-x-1">
-                          {[1, 2, 3, 4].map((dot) => (
-                            <div 
-                              key={dot} 
-                              className={`w-3 h-3 rounded-full border border-gray-500 cursor-pointer hover:bg-purple-400 ${
-                                dot <= actionRatings[action] ? 'bg-purple-600' : 'bg-gray-700'
-                              }`}
-                              onClick={() => updateActionRating(action, dot <= actionRatings[action] ? dot - 1 : dot)}
-                            ></div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Dice Results */}
-              {diceResult && (
-                <div className="mb-6 bg-gray-700 p-3 rounded border border-gray-600">
-                  <div className="text-sm font-bold text-purple-400 mb-2">
-                    {diceResult.action} {diceResult.isResistance ? 'Resistance Roll' : 'Action Roll'}
-                    {diceResult.zeroDice && <span className="text-red-400 ml-2">(0 Dice)</span>}
-                    {diceResult.isDesperateAction && <span className="text-orange-400 ml-2">(Desperate - XP Gained!)</span>}
-                  </div>
-                  <div className="flex items-center space-x-4 text-xs mb-2">
-                    <div>
-                      <span className="text-gray-400">Dice:</span>
-                      <span className="ml-1">
-                        {diceResult.dice.map((die, i) => (
-                          <span key={i} className={`inline-block w-6 h-6 border rounded mr-1 text-center leading-6 ${
-                            die === 6 ? 'bg-green-600 border-green-400' : 
-                            die >= 4 ? 'bg-blue-600 border-blue-400' : 
-                            'bg-gray-600 border-gray-400'
-                          } ${diceResult.zeroDice && die === diceResult.result ? 'ring-2 ring-red-400' : ''}`}>
-                            {die}
-                          </span>
+                {/* XP and Advancement */}
+                <div style={S.card}>
+                  <span style={S.lbl}>EXPERIENCE TRACKS</span>
+                  {[
+                    { name:'INSIGHT', key:'insight', max:5 }, { name:'PROWESS', key:'prowess', max:5 },
+                    { name:'RESOLVE', key:'resolve', max:5 }, { name:'HERITAGE', key:'heritage', max:5 },
+                    { name:'PLAYBOOK', key:'playbook', max:10 },
+                  ].map(({ name, key, max }) => (
+                    <div key={key} style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
+                      <span style={{ fontSize:'11px', color:'#9ca3af', width:'64px' }}>{name}</span>
+                      <div style={{ display:'flex', gap:'2px' }}>
+                        {Array.from({ length: max }, (_, i) => (
+                          <div key={i} onClick={() => toggleXP(key, i)}
+                            style={{ width:'13px', height:'13px', border:'1px solid #4b5563', cursor:'pointer',
+                              background: i < xp[key] ? '#7c3aed' : '#111827' }} />
                         ))}
-                      </span>
+                      </div>
+                      <span style={{ fontSize:'10px', color:'#6b7280' }}>({xp[key]}/{max})</span>
                     </div>
-                    <div>
-                      <span className="text-gray-400">Result:</span>
-                      <span className={`ml-1 font-bold ${
-                        diceResult.outcome.includes('Success') ? 'text-green-400' : 
-                        diceResult.outcome.includes('Partial') ? 'text-yellow-400' : 
-                        'text-red-400'
-                      }`}>
-                        {diceResult.outcome}
-                      </span>
+                  ))}
+
+                  {/* Advancement panel */}
+                  <div style={{ marginTop:'10px', padding:'10px', background:'#0d1117', borderRadius:'4px', border:'1px solid #30363d' }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'8px' }}>
+                      <span style={{ color:'#a78bfa', fontWeight:'bold' }}>Total XP: {totalXP}</span>
+                      {/* FIX 5: Dev session XP */}
+                      {sessionDevXP > 0
+                        ? <span style={{ ...S.info, padding:'2px 6px' }}>+{sessionDevXP} XP/session (DEV {GRADE_LETTERS[devVal]})</span>
+                        : <span style={{ fontSize:'10px', color:'#4b5563' }}>DEV F &#8212; standard XP only</span>
+                      }
                     </div>
-                    {diceResult.special && (
-                      <div className={`${diceResult.zeroDice ? 'text-red-400 font-bold' : 'text-purple-400'}`}>
-                        {diceResult.special}
+
+                    {/* FIX 6: Level-up description */}
+                    <div style={{ fontSize:'11px', padding:'8px', background:'#111827', borderRadius:'4px', border:'1px solid #374151', marginBottom:'8px' }}>
+                      <div style={{ color:'#d1d5db', fontWeight:'bold', marginBottom:'3px' }}>LEVEL UP &#8212; 10 XP</div>
+                      <div style={{ color:'#9ca3af', marginBottom:'2px' }}>Choose ONE option:</div>
+                      <div style={{ color:'#c4b5fd' }}>A &#8212; +1 Stand Coin grade (any stat)</div>
+                      <div style={{ color:'#c4b5fd', marginBottom:'4px' }}>B &#8212; +2 Action dots (any 2 actions; can exceed creation cap of 2)</div>
+                      <div style={{ color:'#6b7280', fontSize:'10px' }}>&#9733; A new ability is always included free with either path.</div>
+                    </div>
+
+                    {totalXP >= 10 ? (
+                      <button onClick={() => setShowLevelUp(true)}
+                        style={{ ...S.btn, background:'#7c3aed', color:'#fff', width:'100%', marginBottom:'10px', fontWeight:'bold' }}>
+                        &#8679; LEVEL UP AVAILABLE
+                      </button>
+                    ) : (
+                      <div style={{ ...S.warn, marginBottom:'10px', textAlign:'center' }}>
+                        {10 - totalXP} more XP needed to level up
                       </div>
                     )}
-                  </div>
 
-                  {/* Desperate Action Button for Action Rolls */}
-                  {!diceResult.isResistance && !diceResult.isDesperateAction && (
-                    <div className="mb-2">
-                      <button
-                        onClick={() => {
-                          // Mark this as a desperate action and gain XP
-                          const actionToAttribute = {
-                            'HUNT': 'insight', 'STUDY': 'insight', 'SURVEY': 'insight', 'TINKER': 'insight',
-                            'FINESSE': 'prowess', 'PROWL': 'prowess', 'SKIRMISH': 'prowess', 'WRECK': 'prowess',
-                            'BIZARRE': 'resolve', 'COMMAND': 'resolve', 'CONSORT': 'resolve', 'SWAY': 'resolve'
-                          };
-                          
-                          const attribute = actionToAttribute[diceResult.action];
-                          if (attribute && xpTracks[attribute] < 5) {
-                            setXpTracks(prev => ({
-                              ...prev,
-                              [attribute]: Math.min(prev[attribute] + 1, 5)
-                            }));
-                            setDiceResult(prev => ({ ...prev, isDesperateAction: true }));
-                          }
-                        }}
-                        className="bg-orange-600 hover:bg-orange-700 px-2 py-1 rounded text-xs"
-                      >
-                        Mark as Desperate Action (+1 XP)
-                      </button>
-                    </div>
-                  )}
-                  
-                  {diceResult.isResistance && (
-                    <div className="bg-gray-800 p-2 rounded text-xs">
-                      {diceResult.resistanceCritical ? (
-                        <>
-                          <div className="text-green-400 font-bold mb-1">⭐ Resistance Critical — Clears 1 Stress!</div>
-                          <div className="text-gray-300 space-y-1">
-                            <div>• The resistance negates the consequence entirely</div>
-                            <div>• Remove 1 filled stress box</div>
-                          </div>
-                          <button
-                            onClick={() => {
-                              const idx = stressBoxes.lastIndexOf(true);
-                              if (idx !== -1) {
-                                const updated = [...stressBoxes];
-                                updated[idx] = false;
-                                setStressBoxes(updated);
-                              }
-                              setDiceResult(null);
-                            }}
-                            className="mt-2 bg-green-700 hover:bg-green-600 px-2 py-1 rounded text-xs"
-                          >
-                            Apply: Clear 1 stress
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <div className="text-yellow-400 font-bold mb-1">Resistance Roll — Stress Cost: {diceResult.stressCost}</div>
-                          <div className="text-gray-300 space-y-1">
-                            <div>• Pay {diceResult.stressCost} stress to reduce harm by one level</div>
-                            <div>• Level 3 → Level 2 (only if Level 2 slot is open)</div>
-                            <div>• Level 2 → Level 1 (only if Level 1 slot is open)</div>
-                            <div>• Level 1 → Removed completely</div>
-                            <div className="text-yellow-300 mt-1">⚠ Must clear lower-level harm first if slots are full!</div>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                  
-                  <button 
-                    onClick={() => setDiceResult(null)}
-                    className="mt-2 text-xs text-gray-400 hover:text-white"
-                  >
-                    ✕ Clear
-                  </button>
-                </div>
-              )}
-
-              {/* Abilities Section */}
-              <div className="mb-6">
-                <div className="text-xs font-bold mb-2">ABILITIES</div>
-                
-                {/* Selected Abilities */}
-                <div className="space-y-2 mb-3">
-                  {selectedAbilities.map((ability) => (
-                    <div key={ability.id} className="flex items-center justify-between bg-gray-700 p-2 rounded text-xs">
-                      <div>
-                        <span className="font-bold">{ability.name}</span>
-                        <span className="ml-2 px-1 py-0.5 bg-purple-600 rounded text-xs">{ability.type}</span>
-                      </div>
-                      <button 
-                        onClick={() => removeAbility(ability.id)}
-                        className="text-red-400 hover:text-red-300"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Add Ability Buttons */}
-                <div className="space-y-2">
-                  <div>
-                    <button 
-                      onClick={() => {
-                        const ability = prompt('Choose a standard ability:', standardAbilities[0]);
-                        if (ability && standardAbilities.includes(ability)) {
-                          addAbility(ability, 'standard');
-                        }
-                      }}
-                      className="w-full py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs"
-                    >
-                      + Add Standard Ability
-                    </button>
-                  </div>
-                  <div>
-                    <button 
-                      onClick={() => {
-                        const abilityName = prompt('Enter custom ability name:');
-                        if (abilityName) {
-                          addAbility(abilityName, 'custom');
-                        }
-                      }}
-                      className="w-full py-1 bg-green-600 hover:bg-green-700 rounded text-xs"
-                    >
-                      + Add Custom Ability
-                    </button>
-                  </div>
-                  <div>
-                    <button 
-                      onClick={() => {
-                        const abilityName = prompt('Enter playbook ability name:');
-                        if (abilityName) {
-                          addAbility(abilityName, 'playbook');
-                        }
-                      }}
-                      className="w-full py-1 bg-purple-600 hover:bg-purple-700 rounded text-xs"
-                    >
-                      + Add Playbook Ability
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bonus Dice */}
-              <div>
-                <div className="text-xs font-bold mb-2">BONUS DICE</div>
-                <div className="space-y-1">
-                  <div className="text-xs">
-                    <strong>PUSH YOURSELF</strong><br />
-                    (take 2 Stress) — or — accept<br />
-                    a <strong>DEVIL'S BARGAIN</strong>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Section - Full preservation of original layout */}
-          <div className="grid grid-cols-3 gap-8">
-            {/* Left Column */}
-            <div className="space-y-6">
-              {/* XP Tracks */}
-              <div>
-                <div className="text-red-400 text-xs font-bold mb-3">EXPERIENCE TRACKS</div>
-                
-                {/* Attribute XP Tracks */}
-                <div className="space-y-2 mb-4">
-                  {[
-                    { name: 'INSIGHT', key: 'insight', max: 5 },
-                    { name: 'PROWESS', key: 'prowess', max: 5 },
-                    { name: 'RESOLVE', key: 'resolve', max: 5 },
-                    { name: 'HERITAGE', key: 'heritage', max: 5 }
-                  ].map(({ name, key, max }) => (
-                    <div key={key} className="flex items-center space-x-2">
-                      <span className="text-xs text-gray-400 w-16">{name}</span>
-                      <div className="flex space-x-1">
-                        {Array.from({ length: max }, (_, i) => (
-                          <div
-                            key={i}
-                            className={`w-3 h-3 border border-gray-500 cursor-pointer hover:bg-purple-400 ${
-                              i < xpTracks[key] ? 'bg-purple-600' : 'bg-gray-700'
-                            }`}
-                            onClick={() => toggleXP(key, i)}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-xs text-gray-400">({xpTracks[key]}/{max})</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Playbook XP Track */}
-                <div className="flex items-center space-x-2 mb-3">
-                  <span className="text-xs text-gray-400 w-16">PLAYBOOK</span>
-                  <div className="flex space-x-1">
-                    {Array.from({ length: 10 }, (_, i) => (
-                      <div
-                        key={i}
-                        className={`w-3 h-3 border border-gray-500 cursor-pointer hover:bg-purple-400 ${
-                          i < xpTracks.playbook ? 'bg-purple-600' : 'bg-gray-700'
-                        }`}
-                        onClick={() => toggleXP('playbook', i)}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-xs text-gray-400">({xpTracks.playbook}/10)</span>
-                </div>
-
-                {/* Total XP and Advancement */}
-                <div className="bg-gray-800 p-2 rounded text-xs">
-                  <div className="text-purple-400 font-bold">Total XP: {getTotalXP()}</div>
-                  {standStats.development > 0 && (
-                    <div className="text-yellow-400 mt-1">
-                      Dev. grade bonus: +{standStats.development} XP/session
-                    </div>
-                  )}
-                  <div className="text-gray-300 mt-2 font-semibold">Level-up (spend 10 XP) — choose ONE:</div>
-                  <div className="text-gray-400 space-y-1 mt-1">
-                    <div>• Upgrade one Stand Coin stat by 1 grade</div>
-                    <div>• +2 action dots <em>and</em> gain one standard/custom ability</div>
-                  </div>
-                  <div className="border-t border-gray-600 mt-2 pt-2">
-                    <div className="text-gray-300 font-semibold">Outside level-up:</div>
-                    <div className="text-gray-400 mt-1">• Spend 5 XP → +1 action dot</div>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div className="text-red-400 text-xs font-bold mb-2">MARK XP:</div>
-                <div className="text-xs space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <span>🔷</span>
-                    <span><em>Every time you roll a desperate action, mark xp in that action's attribute.</em></span>
-                  </div>
-                  <div className="text-xs">
-                    At the end of each session, for each item below, mark 1 xp (or instead mark 2 xp if that item occurred multiple times).
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span>🔷</span>
-                    <span><em>Enter your playbook's specific way to mark XP here.</em></span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span>🔷</span>
-                    <span>You expressed your beliefs, drives, heritage, or background.</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span>🔷</span>
-                    <span>You struggled with issues from your vice or traumas during the session.</span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div className="text-red-400 text-xs font-bold mb-2">TEAMWORK</div>
-                <div className="space-y-1 text-xs">
-                  <div className="bg-gray-700 p-1">Assist a teammate</div>
-                  <div className="bg-gray-700 p-1">Lead a group action</div>
-                  <div className="bg-gray-700 p-1">Protect a teammate</div>
-                  <div className="bg-gray-700 p-1">Set up a teammate</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Middle Column */}
-            <div className="space-y-6">
-              <div>
-                <div className="text-red-400 text-xs font-bold mb-2">PLANNING & LOAD</div>
-                <div className="text-xs mb-2">
-                  Choose a plan, provide the <strong>detail</strong>. Choose your <strong>load</strong> limit for the operation.
-                </div>
-                <div className="space-y-1 text-xs">
-                  <div><strong>Assault:</strong> <em>Point of attack</em></div>
-                  <div><strong>Occult:</strong> <em>Arcane power</em></div>
-                  <div><strong>Deception:</strong> <em>Method</em></div>
-                  <div><strong>Social:</strong> <em>Connection</em></div>
-                  <div><strong>Stealth:</strong> <em>Entry point</em></div>
-                  <div><strong>Transport:</strong> <em>Route</em></div>
-                </div>
-              </div>
-
-              <div>
-                <div className="text-red-400 text-xs font-bold mb-2">GATHER INFORMATION</div>
-                <div className="space-y-1 text-xs text-gray-400">
-                  <div>🔷 What do they intend to do?</div>
-                  <div>🔷 How can I get them to [X]?</div>
-                  <div>🔷 What are they really feeling?</div>
-                  <div>🔷 What should I look out for?</div>
-                  <div>🔷 Where's the weakness here?</div>
-                  <div>🔷 How can I find [X]?</div>
-                  <div>🔷 What's really going on here?</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column */}
-            <div className="space-y-6">
-              <div>
-                <div className="text-red-400 text-xs font-bold mb-2">FRIENDS</div>
-                <div className="flex items-center space-x-2 mb-2">
-                  <span className="text-xs">🔻 Friend name</span>
-                </div>
-                <button className="w-full bg-gray-600 text-xs py-1 border border-gray-500">Roll Fortune</button>
-              </div>
-
-              <div>
-                <div className="text-red-400 text-xs font-bold mb-2">RIVALS</div>
-                <div className="flex items-center space-x-2 mb-2">
-                  <span className="text-xs">🔻 Rival name</span>
-                </div>
-                <button className="w-full bg-gray-600 text-xs py-1 border border-gray-500">Roll Fortune</button>
-              </div>
-
-              <div>
-                <div className="text-red-400 text-xs font-bold mb-2">CLOCKS</div>
-                
-                {/* Custom Clocks */}
-                <div className="space-y-3 mb-3">
-                  {customClocks.map((clock) => (
-                    <div key={clock.id} className="bg-gray-700 p-2 rounded">
-                      <div className="flex items-center justify-between mb-2">
-                        <input 
-                          type="text" 
-                          value={clock.name}
-                          onChange={(e) => {
-                            setCustomClocks(customClocks.map(c => 
-                              c.id === clock.id ? { ...c, name: e.target.value } : c
-                            ));
-                          }}
-                          className="bg-transparent text-xs text-white flex-1 mr-2 border-b border-gray-500"
-                        />
-                        <button 
-                          onClick={() => deleteClock(clock.id)}
-                          className="text-red-400 hover:text-red-300 text-xs"
-                        >
-                          ✕
+                    {/* FIX 7: Minor advance */}
+                    <div style={{ borderTop:'1px solid #1f2937', paddingTop:'8px' }}>
+                      <div style={{ fontSize:'11px', color:'#d1d5db', fontWeight:'bold', marginBottom:'2px' }}>MINOR ADVANCE &#8212; 5 XP</div>
+                      <div style={{ fontSize:'11px', color:'#6b7280', marginBottom:'6px' }}>+1 Action dot, outside level-up (max 4 per action)</div>
+                      <div style={{ display:'flex', gap:'6px' }}>
+                        <select value={minorAdvanceAction} onChange={e => setMinorAdvanceAction(e.target.value)}
+                          style={{ ...S.sel, flex:1, fontSize:'11px' }}>
+                          {Object.keys(actionRatings).map(a => (
+                            <option key={a} value={a} disabled={actionRatings[a] >= 4}>
+                              {a} ({actionRatings[a]}/4){actionRatings[a] >= 4 ? ' \u2014 MAX' : ''}
+                            </option>
+                          ))}
+                        </select>
+                        <button onClick={spendXPForDot}
+                          disabled={totalXP < 5 || actionRatings[minorAdvanceAction] >= 4}
+                          style={{ ...S.btn, fontSize:'11px',
+                            background: totalXP >= 5 && actionRatings[minorAdvanceAction] < 4 ? '#4338ca' : '#374151',
+                            color: totalXP >= 5 && actionRatings[minorAdvanceAction] < 4 ? '#fff' : '#6b7280' }}>
+                          &#8722;5 XP
                         </button>
                       </div>
-                      <div className="flex items-center justify-center">
-                        <ProgressClock 
-                          size={40} 
-                          segments={clock.segments} 
-                          filled={clock.filled}
-                          interactive={true}
-                          onClick={(newFilled) => updateClock(clock.id, newFilled)}
-                        />
+                      {totalXP < 5 && <div style={{ ...S.warn, marginTop:'4px' }}>{5 - totalXP} more XP needed</div>}
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop:'10px', fontSize:'11px', color:'#9ca3af', lineHeight:'1.7' }}>
+                    <span style={S.lbl}>MARK XP WHEN YOU&#8230;</span>
+                    Make a desperate action roll &#8212; +1 XP in that attribute<br />
+                    Express beliefs, drives, heritage, or background<br />
+                    Struggle with your vice, trauma, or crew entanglements
+                  </div>
+                </div>
+
+              </div>{/* end LEFT */}
+
+              {/* RIGHT COLUMN */}
+              <div>
+                <div style={{ ...S.card, border:'1px solid #4b5563' }}>
+
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'14px' }}>
+                    <h2 style={{ margin:0, fontSize:'18px', color:'#9ca3af', fontWeight:'bold' }}>PLAYBOOK</h2>
+                    <select value={playbook} onChange={e => setPlaybook(e.target.value)} style={S.sel}>
+                      <option>Stand</option><option>Hamon</option><option>Spin</option>
+                    </select>
+                  </div>
+
+                  {/* Stand Coin Stats */}
+                  <div style={{ marginBottom:'16px' }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:'6px' }}>
+                      <span style={S.lbl}>STAND COIN STATS</span>
+                      <span style={{ fontSize:'11px', color: totalStandPoints > 6 ? '#f87171' : '#6b7280' }}>
+                        {totalStandPoints}/6 pts
+                      </span>
+                    </div>
+                    {totalStandPoints > 6 && (
+                      <div style={{ ...S.warn, marginBottom:'8px' }}>
+                        Over budget by {totalStandPoints - 6} pt{totalStandPoints - 6 > 1 ? 's' : ''}
                       </div>
-                      <div className="text-center text-xs text-gray-400 mt-1">
-                        {clock.filled}/{clock.segments}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                <button 
-                  onClick={addCustomClock}
-                  className="w-full py-2 border-2 border-dashed border-gray-600 rounded-lg text-gray-400 hover:border-purple-400 hover:text-purple-400 transition-colors text-xs"
-                >
-                  + Add Clock
-                </button>
-                
-                {/* Notes section moved here */}
-                <div className="mt-4">
-                  <div className="text-red-400 text-xs font-bold mb-2">NOTES</div>
-                  <div className="border border-gray-600 bg-gray-800 p-2 h-20">
-                    <textarea 
-                      placeholder="Notes..." 
-                      className="w-full h-full bg-transparent text-xs text-white resize-none"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-            </>
-          )}
-          
-          {activeMode === 'CREW MODE' && (
-            <div className="crew-sheet">
-              {/* Header */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-4">
-                    <div className="text-xs text-gray-400 font-bold">NAME</div>
-                    <input 
-                      type="text" 
-                      value={crewData.name}
-                      onChange={(e) => setCrewData(prev => ({ ...prev, name: e.target.value }))}
-                      className="bg-transparent text-white font-bold text-lg border-b border-gray-600 pb-1" 
-                      placeholder="Crew Name"
-                    />
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="text-xs text-gray-400 font-bold">REPUTATION</div>
-                    <input 
-                      type="text" 
-                      value={crewData.reputation}
-                      onChange={(e) => setCrewData(prev => ({ ...prev, reputation: e.target.value }))}
-                      className="bg-transparent text-white border-b border-gray-600 pb-1" 
-                      placeholder="Crew Reputation"
-                    />
-                  </div>
-                </div>
-
-                {/* Ward Boss Section */}
-                <div className="bg-gray-800 border border-gray-600 p-3 mb-4">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <input 
-                      type="text" 
-                      value={crewData.wardBossTitle}
-                      onChange={(e) => setCrewData(prev => ({ ...prev, wardBossTitle: e.target.value }))}
-                      className="bg-gray-700 text-white border border-gray-600 px-2 py-1 text-xs font-bold" 
-                      placeholder="Ward Boss"
-                    />
-                    <span className="text-gray-400 text-xs">(editable title)</span>
-                  </div>
-                </div>
-
-                {/* Stats Row */}
-                <div className="grid grid-cols-5 gap-4 mb-4">
-                  {/* REP */}
-                  <div>
-                    <div className="text-red-400 text-xs font-bold mb-1">REP</div>
-                    <div className="flex space-x-1">
-                      {Array.from({ length: 6 }, (_, i) => (
-                        <div 
-                          key={i} 
-                          className={`w-4 h-4 border border-gray-600 cursor-pointer hover:bg-gray-600 ${
-                            i < crewData.rep ? 'bg-green-600' : 'bg-gray-800'
-                          }`}
-                          onClick={() => setCrewData(prev => ({ ...prev, rep: i < crewData.rep ? i : i + 1 }))}
-                        ></div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* TURF */}
-                  <div>
-                    <div className="text-red-400 text-xs font-bold mb-1">TURF</div>
-                    <div className="flex space-x-1">
-                      {Array.from({ length: 6 }, (_, i) => (
-                        <div 
-                          key={i} 
-                          className={`w-4 h-4 border border-gray-600 cursor-pointer hover:bg-gray-600 ${
-                            i < crewData.turf ? 'bg-blue-600' : 'bg-gray-800'
-                          }`}
-                          onClick={() => setCrewData(prev => ({ ...prev, turf: i < crewData.turf ? i : i + 1 }))}
-                        ></div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* HOLD */}
-                  <div>
-                    <div className="text-red-400 text-xs font-bold mb-1">HOLD</div>
-                    <div className="flex space-x-2">
-                      <label className="flex items-center space-x-1 cursor-pointer">
-                        <input 
-                          type="radio" 
-                          name="hold"
-                          value="weak"
-                          checked={crewData.hold === 'weak'}
-                          onChange={(e) => setCrewData(prev => ({ ...prev, hold: e.target.value }))}
-                          className="w-3 h-3" 
-                        />
-                        <span className="text-xs">WEAK</span>
-                      </label>
-                      <label className="flex items-center space-x-1 cursor-pointer">
-                        <input 
-                          type="radio" 
-                          name="hold"
-                          value="strong"
-                          checked={crewData.hold === 'strong'}
-                          onChange={(e) => setCrewData(prev => ({ ...prev, hold: e.target.value }))}
-                          className="w-3 h-3" 
-                        />
-                        <span className="text-xs">STRONG</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* TIER */}
-                  <div>
-                    <div className="text-red-400 text-xs font-bold mb-1">TIER</div>
-                    <div className="flex space-x-1">
-                      {Array.from({ length: 4 }, (_, i) => (
-                        <div 
-                          key={i} 
-                          className={`w-6 h-6 rounded-full border border-gray-600 cursor-pointer hover:bg-gray-600 flex items-center justify-center text-xs ${
-                            i < crewData.tier ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-400'
-                          }`}
-                          onClick={() => setCrewData(prev => ({ ...prev, tier: i < crewData.tier ? i : i + 1 }))}
-                        >
-                          {i + 1}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* WANTED */}
-                  <div>
-                    <div className="text-red-400 text-xs font-bold mb-1">WANTED</div>
-                    <div className="flex space-x-1">
-                      {Array.from({ length: 5 }, (_, i) => (
-                        <div 
-                          key={i} 
-                          className={`w-4 h-4 cursor-pointer hover:text-yellow-400 text-center ${
-                            i < crewData.wanted ? 'text-yellow-400' : 'text-gray-600'
-                          }`}
-                          onClick={() => setCrewData(prev => ({ ...prev, wanted: i < crewData.wanted ? i : i + 1 }))}
-                        >
-                          ★
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Coin & Vaults */}
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <div className="text-red-400 text-xs font-bold mb-1">COIN (ON HAND)</div>
-                    <div className="flex space-x-1">
-                      {Array.from({ length: 4 }, (_, i) => (
-                        <div 
-                          key={i} 
-                          className={`w-6 h-6 border border-gray-600 cursor-pointer hover:bg-gray-600 ${
-                            i < crewData.coin ? 'bg-yellow-600' : 'bg-gray-800'
-                          }`}
-                          onClick={() => setCrewData(prev => ({ ...prev, coin: i < crewData.coin ? i : i + 1 }))}
-                        ></div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-red-400 text-xs font-bold mb-1">VAULTS</div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs text-gray-400">Storage: {crewData.vaults}</span>
-                      <button 
-                        onClick={() => setCrewData(prev => ({ 
-                          ...prev, 
-                          vaults: prev.vaults === 0 ? 4 : prev.vaults === 4 ? 12 : 0 
-                        }))}
-                        className="bg-gray-600 px-2 py-1 text-xs border border-gray-500"
-                      >
-                        {crewData.vaults === 0 ? 'Buy +4' : crewData.vaults === 4 ? 'Upgrade +8' : 'Reset'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Main Content Grid */}
-              <div className="grid grid-cols-3 gap-6">
-                {/* Left Column */}
-                <div className="space-y-6">
-                  {/* Special Abilities */}
-                  <div>
-                    <div className="text-red-400 text-xs font-bold mb-2">SPECIAL ABILITIES</div>
-                    <div className="bg-gray-800 border border-gray-600 p-3 min-h-24">
-                      {crewData.specialAbilities.length > 0 ? (
-                        <div className="space-y-2">
-                          {crewData.specialAbilities.map((ability, i) => (
-                            <div key={i} className="text-xs">
-                              <span className="font-bold">{ability.name}</span>
-                              <div className="text-gray-400">{ability.description}</div>
+                    )}
+                    {Object.entries(standStats).map(([stat, val]) => {
+                      const canDec = val > 0 && !Object.entries(standStats).every(([k, v]) => k === stat ? val - 1 === 0 : v === 0);
+                      const canInc = val < 4;
+                      const desc = PC_STAT_DESC[stat]?.[val];
+                      return (
+                        <div key={stat} style={{ marginBottom:'10px' }}>
+                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', fontSize:'12px' }}>
+                            <span style={{ color:'#d1d5db', fontWeight:'bold', width:'90px', textTransform:'uppercase' }}>{stat}</span>
+                            <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+                              <button onClick={() => decrementStat(stat)} disabled={!canDec}
+                                style={{ ...S.btn, background: canDec ? '#dc2626' : '#374151', color:'#fff', width:'20px', height:'20px', padding:0, opacity: canDec ? 1 : 0.4 }}>&#8722;</button>
+                              <span style={{ width:'18px', textAlign:'center', fontWeight:'bold' }}>{val}</span>
+                              <button onClick={() => incrementStat(stat)} disabled={!canInc}
+                                style={{ ...S.btn, background: canInc ? '#16a34a' : '#374151', color:'#fff', width:'20px', height:'20px', padding:0, opacity: canInc ? 1 : 0.4 }}>+</button>
+                              <span style={{ width:'14px', color:'#9ca3af', fontSize:'11px' }}>{GRADE_LETTERS[val]}</span>
                             </div>
-                          ))}
+                          </div>
+                          {/* Per-stat description */}
+                          {desc && (
+                            <div style={{ fontSize:'10px', color:'#6b7280', marginTop:'2px', paddingLeft:'90px', lineHeight:'1.4' }}>
+                              {desc}
+                              {stat === 'durability' && val === 4 && <span style={{ color:'#f59e0b' }}> &#183; Resistance reduces harm 2 levels</span>}
+                              {stat === 'precision' && val === 4 && <span style={{ color:'#a78bfa' }}> &#183; 5s also count as success</span>}
+                              {stat === 'development' && sessionDevXP > 0 && <span style={{ color:'#818cf8' }}> &#183; +{sessionDevXP} XP/session</span>}
+                            </div>
+                          )}
                         </div>
-                      ) : (
-                        <div className="text-gray-500 text-xs">No special abilities yet</div>
-                      )}
-                      <button 
-                        onClick={() => {
-                          const name = prompt('Ability name:');
-                          const description = prompt('Ability description:');
-                          if (name && description) {
-                            setCrewData(prev => ({
-                              ...prev,
-                              specialAbilities: [...prev.specialAbilities, { name, description }]
-                            }));
-                          }
-                        }}
-                        className="mt-2 bg-blue-600 px-2 py-1 text-xs rounded"
-                      >
-                        + Add Ability
-                      </button>
+                      );
+                    })}
+                    <div style={{ fontSize:'10px', color:'#4b5563', marginTop:'2px' }}>
+                      Player max: A(4) &#8212; S-rank is GM-assigned only
+                    </div>
+                    {/* XP breakdown line */}
+                    <div style={{ marginTop:'6px', background:'#0d1117', borderRadius:'4px', padding:'6px 8px', fontSize:'11px', display:'flex', justifyContent:'space-between' }}>
+                      <span style={{ color:'#6b7280' }}>Coin: {totalStandPoints}&#215;10 = <span style={{ color:'#a78bfa' }}>{totalStandPoints * 10} XP</span></span>
+                      <span style={{ color:'#6b7280' }}>Dots: {totalActionDots}&#215;5 = <span style={{ color:'#a78bfa' }}>{totalActionDots * 5} XP</span></span>
+                      <span style={{ color: pcLevel >= 4 ? '#fbbf24' : '#34d399', fontWeight:'bold' }}>Lv {pcLevel}</span>
                     </div>
                   </div>
 
-                  {/* Crew Advancement */}
-                  <div>
-                    <div className="text-red-400 text-xs font-bold mb-2">CREW ADVANCEMENT</div>
-                    <div className="bg-gray-800 border border-gray-600 p-3 text-xs text-gray-300">
-                      <div className="space-y-1">
-                        <div>🔷 Contend with challenges above your current station</div>
-                        <div>🔷 Bolster your crew's reputation or develop a new one</div>
-                        <div>🔷 Express the goals, drives, inner conflict, or essential nature of the crew</div>
-                      </div>
+                  {/* FIX 1: Action Ratings */}
+                  <div style={{ marginBottom:'14px' }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'6px' }}>
+                      <span style={S.lbl}>ACTION RATINGS</span>
+                      <span style={{ fontSize:'11px', color: dotColor, fontWeight: dotsRemaining === 0 ? 'bold' : 'normal' }}>
+                        {totalActionDots}/{MAX_CREATION_DOTS} dots {dotsRemaining > 0 ? `(${dotsRemaining} left)` : '\u2014 FULL'}
+                      </span>
                     </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="space-y-2">
-                    <button className="w-full bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded text-sm">
-                      Roll Engagement
-                    </button>
-                    <button className="w-full bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded text-sm">
-                      Roll Fortune
-                    </button>
-                  </div>
-                </div>
-
-                {/* Center Column - Lair Map */}
-                <div>
-                  <div className="text-red-400 text-xs font-bold mb-2">LAIR</div>
-                  <div className="bg-gray-800 border border-gray-600 p-4 h-96">
-                    <div className="text-center text-gray-500 mt-20">
-                      <div className="text-4xl mb-2">🏰</div>
-                      <div className="text-sm">Lair Map</div>
-                      <div className="text-xs text-gray-400 mt-2">
-                        Visual representation of crew's base of operations
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Column */}
-                <div className="space-y-6">
-                  {/* Crew Description */}
-                  <div>
-                    <div className="text-red-400 text-xs font-bold mb-2">CREW</div>
-                    <div className="bg-gray-800 border border-gray-600 p-3">
-                      <textarea 
-                        value={crewData.description}
-                        onChange={(e) => setCrewData(prev => ({ ...prev, description: e.target.value }))}
-                        placeholder="A short crew description..."
-                        className="w-full h-16 bg-transparent text-xs text-white resize-none"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Crew Upgrades */}
-                  <div>
-                    <div className="text-red-400 text-xs font-bold mb-2">CREW UPGRADES</div>
-                    <div className="bg-gray-800 border border-gray-600 p-3 space-y-3">
-                      {/* Lair */}
-                      <div>
-                        <div className="text-xs font-bold mb-1">LAIR</div>
-                        <div className="grid grid-cols-2 gap-1 text-xs">
-                          {Object.entries(crewData.upgrades.lair).map(([key, value]) => (
-                            <label key={key} className="flex items-center space-x-1 cursor-pointer">
-                              <input 
-                                type="checkbox" 
-                                className="w-3 h-3" 
-                                checked={value}
-                                onChange={(e) => setCrewData(prev => ({
-                                  ...prev,
-                                  upgrades: {
-                                    ...prev.upgrades,
-                                    lair: { ...prev.upgrades.lair, [key]: e.target.checked }
-                                  }
-                                }))}
-                              />
-                              <span className="capitalize">{key}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Quality */}
-                      <div>
-                        <div className="text-xs font-bold mb-1">QUALITY</div>
-                        <div className="space-y-1">
-                          {Object.entries(crewData.upgrades.quality).map(([key, value]) => (
-                            <div key={key} className="flex items-center justify-between text-xs">
-                              <span className="capitalize">{key}</span>
-                              <div className="flex space-x-1">
-                                {[1, 2, 3, 4].map((level) => (
-                                  <div 
-                                    key={level}
-                                    className={`w-3 h-3 border border-gray-500 cursor-pointer ${
-                                      level <= value ? 'bg-green-600' : 'bg-gray-700'
-                                    }`}
-                                    onClick={() => setCrewData(prev => ({
-                                      ...prev,
-                                      upgrades: {
-                                        ...prev.upgrades,
-                                        quality: { 
-                                          ...prev.upgrades.quality, 
-                                          [key]: level <= value ? level - 1 : level 
-                                        }
-                                      }
-                                    }))}
-                                  />
-                                ))}
+                    <div style={S.g3}>
+                      {[
+                        { attr:'INSIGHT', actions:['HUNT','STUDY','SURVEY','TINKER'] },
+                        { attr:'PROWESS', actions:['FINESSE','PROWL','SKIRMISH','WRECK'] },
+                        { attr:'RESOLVE', actions:['BIZARRE','COMMAND','CONSORT','SWAY'] },
+                      ].map(({ attr, actions }) => (
+                        <div key={attr}>
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'6px' }}>
+                            <span onClick={() => rollDice(attr, getAttributeDice(actions), true)}
+                              style={{ fontSize:'11px', fontWeight:'bold', cursor:'pointer', color:'#e5e7eb' }}
+                              title="Click for Resistance Roll">
+                              {attr}
+                            </span>
+                            <div style={{ display:'flex', gap:'2px' }}>
+                              {[1,2,3,4].map(d => (
+                                <div key={d} style={{ width:'7px', height:'7px', borderRadius:'50%', border:'1px solid #4b5563',
+                                  background: d <= getAttributeDice(actions) ? '#3b82f6' : '#1f2937' }} />
+                              ))}
+                            </div>
+                          </div>
+                          {actions.map(action => {
+                            const rating = actionRatings[action];
+                            return (
+                              <div key={action} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'4px' }}>
+                                <span onClick={() => rollDice(action, rating)}
+                                  style={{ fontSize:'11px', cursor:'pointer', color:'#d1d5db' }}
+                                  title={`Click to roll ${rating}d`}>
+                                  {action}
+                                </span>
+                                <div style={{ display:'flex', gap:'2px' }}>
+                                  {[1,2,3,4].map(d => {
+                                    const filled   = d <= rating;
+                                    const isAdvDot = d > MAX_DOTS_PER_ACTION_CREATION;
+                                    return (
+                                      <div key={d}
+                                        onClick={() => { if (isAdvDot) return; updateActionRating(action, d <= rating ? d - 1 : d); }}
+                                        title={isAdvDot ? (filled ? `Dot ${d} \u2014 gained via advancement` : `Dot ${d} \u2014 unlock via advancement`) : (dotsRemaining === 0 && !filled ? 'No creation dots remaining' : '')}
+                                        style={{ width:'12px', height:'12px', borderRadius:'50%',
+                                          border:`1px solid ${isAdvDot ? '#374151' : '#6b7280'}`,
+                                          cursor: isAdvDot ? 'default' : 'pointer',
+                                          background: filled ? (isAdvDot ? '#a78bfa' : '#7c3aed') : '#111827',
+                                          opacity: isAdvDot && !filled ? 0.2 : 1 }} />
+                                    );
+                                  })}
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
-                      </div>
-
-                      {/* Training */}
-                      <div>
-                        <div className="text-xs font-bold mb-1">TRAINING</div>
-                        <div className="space-y-1 text-xs">
-                          {Object.entries(crewData.upgrades.training).map(([key, value]) => (
-                            <label key={key} className="flex items-center space-x-1 cursor-pointer">
-                              <input 
-                                type="checkbox" 
-                                className="w-3 h-3" 
-                                checked={value}
-                                onChange={(e) => setCrewData(prev => ({
-                                  ...prev,
-                                  upgrades: {
-                                    ...prev.upgrades,
-                                    training: { ...prev.upgrades.training, [key]: e.target.checked }
-                                  }
-                                }))}
-                              />
-                              <span className="capitalize">{key}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Contacts */}
-                  <div>
-                    <div className="text-red-400 text-xs font-bold mb-2">CONTACTS</div>
-                    <div className="bg-gray-800 border border-gray-600 p-3 h-20">
-                      <div className="text-xs text-gray-500">Contact management</div>
+                  {/* Dice Result &#8212; FIX 8 */}
+                  {diceResult && (
+                    <div style={{ background:'#1f2937', padding:'12px', borderRadius:'4px', border:'1px solid #4b5563', marginBottom:'14px', fontSize:'12px' }}>
+                      <div style={{ color:'#a78bfa', fontWeight:'bold', marginBottom:'6px' }}>
+                        {diceResult.action} {diceResult.isResistance ? 'Resistance Roll' : 'Action Roll'}
+                        {diceResult.zeroDice && <span style={{ color:'#f87171', marginLeft:'8px' }}>(0 Dice)</span>}
+                        {diceResult.isDesperateAction && <span style={{ color:'#f97316', marginLeft:'8px' }}>(Desperate &#8212; XP marked)</span>}
+                      </div>
+                      <div style={{ display:'flex', gap:'6px', alignItems:'center', flexWrap:'wrap', marginBottom:'8px' }}>
+                        <div style={{ display:'flex', gap:'3px' }}>
+                          {diceResult.dice.map((die, i) => (
+                            <span key={i} style={{ display:'inline-flex', width:'24px', height:'24px', borderRadius:'4px',
+                              alignItems:'center', justifyContent:'center', fontWeight:'bold', border:'1px solid',
+                              background: die === 6 ? '#166534' : die >= 4 ? '#1e3a8a' : '#374151',
+                              borderColor: die === 6 ? '#22c55e' : die >= 4 ? '#3b82f6' : '#6b7280' }}>{die}</span>
+                          ))}
+                        </div>
+                        <span style={{ fontWeight:'bold', color:
+                          diceResult.outcome.includes('Critical') ? '#fbbf24' :
+                          diceResult.outcome === 'Success' ? '#22c55e' :
+                          diceResult.outcome.includes('Partial') ? '#eab308' : '#ef4444' }}>
+                          {diceResult.outcome}
+                        </span>
+                        {diceResult.special && <span style={{ color:'#fbbf24' }}>{diceResult.special}</span>}
+                      </div>
+
+                      {/* FIX 8: Critical resistance gold banner */}
+                      {diceResult.isResistance && (
+                        <div style={{ padding:'8px', borderRadius:'4px', ...(diceResult.isCritical
+                          ? { background:'#451a03', border:'1px solid #92400e' }
+                          : { background:'#0d1117', border:'1px solid #374151' }) }}>
+                          {diceResult.isCritical ? (
+                            <>
+                              <div style={{ color:'#fbbf24', fontWeight:'bold', marginBottom:'2px' }}>
+                                &#10022; CRITICAL &#8212; 0 Stress cost + Clear 1 stress
+                              </div>
+                              <div style={{ color:'#fcd34d', fontSize:'11px' }}>
+                                Pay no stress AND remove one previously filled stress box.
+                              </div>
+                              <button onClick={() => { setStressFilled(p => Math.max(0, p - 1)); setDiceResult(null); }}
+                                style={{ ...S.btn, background:'#16a34a', color:'#fff', marginTop:'6px', fontSize:'11px' }}>
+                                Apply: Clear 1 stress
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <div style={{ color:'#eab308', fontWeight:'bold', marginBottom:'2px' }}>
+                                Stress Cost: {diceResult.stressCost}
+                              </div>
+                              <div style={{ color:'#d1d5db', fontSize:'11px' }}>
+                                Consequence reduced by 1 level (or negated at GM discretion).
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
+
+                      {!diceResult.isResistance && !diceResult.isDesperateAction && (
+                        <button onClick={() => {
+                          const attr = ACTION_ATTR[diceResult.action];
+                          if (attr) setXp(p => ({ ...p, [attr]: Math.min(p[attr] + 1, 5) }));
+                          setDiceResult(p => ({ ...p, isDesperateAction: true }));
+                        }} style={{ ...S.btn, background:'#c2410c', color:'#fff', marginTop:'6px', fontSize:'11px' }}>
+                          Mark as Desperate (+1 XP)
+                        </button>
+                      )}
+                      <button onClick={() => setDiceResult(null)}
+                        style={{ display:'block', marginTop:'6px', color:'#6b7280', background:'none', border:'none', cursor:'pointer', fontSize:'11px' }}>
+                        &#10005; Clear
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Abilities */}
+                  <div style={{ marginBottom:'14px' }}>
+                    <span style={S.lbl}>ABILITIES</span>
+                    {abilities.map(ab => (
+                      <div key={ab.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', background:'#374151', padding:'5px 8px', borderRadius:'4px', marginBottom:'3px', fontSize:'12px' }}>
+                        <div>
+                          <span style={{ fontWeight:'bold' }}>{ab.name}</span>
+                          <span style={{ marginLeft:'6px', padding:'1px 5px', background:'#7c3aed', borderRadius:'10px', fontSize:'10px' }}>{ab.type}</span>
+                        </div>
+                        <button onClick={() => setAbilities(p => p.filter(a => a.id !== ab.id))}
+                          aria-label="Remove ability"
+                          style={{ color:'#f87171', background:'none', border:'none', cursor:'pointer', fontSize:'15px' }}>&#215;</button>
+                      </div>
+                    ))}
+                    <div style={{ display:'flex', gap:'5px', marginTop:'6px', flexWrap:'wrap' }}>
+                      <button onClick={() => { const n = prompt('Standard ability name:'); if (n) setAbilities(p => [...p, { id: Date.now(), name: n, type: 'standard' }]); }}
+                        style={{ ...S.btn, background:'#1d4ed8', color:'#fff', fontSize:'11px' }}>+ Standard</button>
+                      <button onClick={() => { const n = prompt('Custom ability name:'); if (n) setAbilities(p => [...p, { id: Date.now(), name: n, type: 'custom' }]); }}
+                        style={{ ...S.btn, background:'#16a34a', color:'#fff', fontSize:'11px' }}>+ Custom</button>
+                      {playbook !== 'Stand' && (
+                        <button onClick={() => { const n = prompt(`${playbook} playbook ability:`); if (n) setAbilities(p => [...p, { id: Date.now(), name: n, type: playbook.toLowerCase() }]); }}
+                          style={{ ...S.btn, background:'#7c3aed', color:'#fff', fontSize:'11px' }}>+ {playbook} Playbook</button>
+                      )}
                     </div>
                   </div>
 
                   {/* Clocks */}
-                  <div>
-                    <div className="text-red-400 text-xs font-bold mb-2">CLOCKS</div>
-                    <div className="bg-gray-800 border border-gray-600 p-3 h-32">
-                      <div className="text-xs text-gray-500">Progress clocks</div>
+                  <div style={{ marginBottom:'14px' }}>
+                    <span style={S.lbl}>CLOCKS</span>
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:'10px', marginBottom:'8px' }}>
+                      {clocks.map(clk => (
+                        <div key={clk.id} style={{ background:'#374151', padding:'8px', borderRadius:'4px', textAlign:'center' }}>
+                          <input value={clk.name}
+                            onChange={e => setClocks(p => p.map(c => c.id === clk.id ? { ...c, name: e.target.value } : c))}
+                            style={{ ...S.inp, textAlign:'center', fontSize:'11px', width:'80px', marginBottom:'4px' }} />
+                          <div style={{ display:'flex', justifyContent:'center' }}>
+                            <ProgressClock size={50} segments={clk.segments} filled={clk.filled} interactive
+                              onClick={f => setClocks(p => p.map(c => c.id === clk.id ? { ...c, filled: f } : c))} />
+                          </div>
+                          <div style={{ fontSize:'10px', color:'#6b7280' }}>{clk.filled}/{clk.segments}</div>
+                          <button onClick={() => setClocks(p => p.filter(c => c.id !== clk.id))}
+                            style={{ color:'#f87171', background:'none', border:'none', cursor:'pointer', fontSize:'11px' }}>&#10005;</button>
+                        </div>
+                      ))}
                     </div>
+                    <button onClick={addClock}
+                      style={{ ...S.btn, border:'2px dashed #374151', background:'transparent', color:'#6b7280', width:'100%', padding:'6px' }}>
+                      + Add Clock
+                    </button>
                   </div>
 
-                  {/* Notes */}
-                  <div>
-                    <div className="text-red-400 text-xs font-bold mb-2">NOTES</div>
-                    <div className="bg-gray-800 border border-gray-600 p-2 h-24">
-                      <textarea 
-                        value={crewData.notes}
-                        onChange={(e) => setCrewData(prev => ({ ...prev, notes: e.target.value }))}
-                        placeholder="Notes..."
-                        className="w-full h-full bg-transparent text-xs text-white resize-none"
-                      />
-                    </div>
+                  {/* Bonus Dice */}
+                  <div style={{ fontSize:'12px', marginBottom:'12px' }}>
+                    <span style={S.lbl}>BONUS DICE</span>
+                    <div><strong>PUSH YOURSELF</strong> (2 Stress) &#8212; or &#8212; <strong>DEVIL&#8217;S BARGAIN</strong></div>
+                    <div style={{ color:'#9ca3af', marginTop:'2px' }}>Assist: +1d to teammate (costs 1 Stress)</div>
                   </div>
+
+                  <div>
+                    <span style={S.lbl}>NOTES</span>
+                    <textarea placeholder="Notes&#8230;" style={{ width:'100%', height:'80px', background:'#0d1117', color:'#fff', border:'1px solid #374151', padding:'8px', fontFamily:'monospace', fontSize:'12px', resize:'vertical', boxSizing:'border-box' }} />
+                  </div>
+
+                </div>
+              </div>{/* end RIGHT */}
+            </div>
+
+            {/* Bottom row */}
+            <div style={{ ...S.g3, marginTop:'16px' }}>
+              <div style={S.card}>
+                <span style={S.lbl}>TEAMWORK</span>
+                {['Assist a teammate (+1d, costs 1 Stress)','Lead a group action','Protect a teammate','Set up a teammate'].map(t => (
+                  <div key={t} style={{ background:'#374151', padding:'4px 8px', marginBottom:'3px', fontSize:'12px' }}>{t}</div>
+                ))}
+              </div>
+              <div style={S.card}>
+                <span style={S.lbl}>PLANNING &amp; LOAD</span>
+                <div style={{ fontSize:'12px', color:'#d1d5db' }}>
+                  {[['Assault','Point of attack'],['Occult','Arcane power'],['Deception','Method'],['Social','Connection'],['Stealth','Entry point'],['Transport','Route']].map(([p, d]) => (
+                    <div key={p}><strong>{p}:</strong> <em>{d}</em></div>
+                  ))}
+                </div>
+              </div>
+              <div style={S.card}>
+                <span style={S.lbl}>GATHER INFORMATION</span>
+                <div style={{ fontSize:'12px', color:'#9ca3af' }}>
+                  {['What do they intend to do?','How can I get them to [X]?','What are they really feeling?','What should I look out for?','Where is the weakness here?','What is really going on here?'].map(q => (
+                    <div key={q}>&#128311; {q}</div>
+                  ))}
                 </div>
               </div>
             </div>
-          )}
+          </>
+        )}
+
+        {/* CREW MODE */}
+        {activeMode === 'CREW MODE' && (
+          <div>
+            <div style={S.card}>
+              <div style={S.g2}>
+                <div><span style={S.lbl}>CREW NAME</span><input style={S.inp} value={crewData.name} onChange={e => setCrewData(p => ({ ...p, name: e.target.value }))} placeholder="Crew Name" /></div>
+                <div><span style={S.lbl}>REPUTATION</span><input style={S.inp} value={crewData.reputation} onChange={e => setCrewData(p => ({ ...p, reputation: e.target.value }))} /></div>
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:'12px', marginTop:'12px' }}>
+                {[['REP','rep',6,'#16a34a'],['TURF','turf',6,'#1d4ed8'],['TIER','tier',4,'#7c3aed'],['WANTED','wanted',5,'#ca8a04'],['COIN','coin',4,'#ca8a04']].map(([label,key,max,color]) => (
+                  <div key={key}>
+                    <span style={S.lbl}>{label}</span>
+                    <div style={{ display:'flex', gap:'2px', flexWrap:'wrap' }}>
+                      {Array.from({ length: max }, (_, i) => (
+                        <div key={i} onClick={() => setCrewData(p => ({ ...p, [key]: i < p[key] ? i : i+1 }))}
+                          style={{ width:'16px', height:'16px', border:'1px solid #4b5563', cursor:'pointer', background: i < crewData[key] ? color : '#111827' }} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop:'12px', display:'flex', gap:'16px', alignItems:'center' }}>
+                <span style={S.lbl}>HOLD</span>
+                {['weak','strong'].map(h => (
+                  <label key={h} style={{ display:'flex', alignItems:'center', gap:'4px', cursor:'pointer', fontSize:'12px' }}>
+                    <input type="radio" name="hold" value={h} checked={crewData.hold===h} onChange={e => setCrewData(p => ({ ...p, hold:e.target.value }))} />
+                    <span style={{ textTransform:'uppercase' }}>{h}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div style={S.g3}>
+              <div style={S.card}>
+                <span style={S.lbl}>SPECIAL ABILITIES</span>
+                {crewData.specialAbilities.map((ab,i) => (
+                  <div key={i} style={{ fontSize:'12px', marginBottom:'6px' }}>
+                    <div style={{ fontWeight:'bold' }}>{ab.name}</div>
+                    <div style={{ color:'#9ca3af' }}>{ab.description}</div>
+                  </div>
+                ))}
+                <button onClick={() => { const n=prompt('Ability:'); const d=prompt('Description:'); if(n&&d) setCrewData(p=>({...p,specialAbilities:[...p.specialAbilities,{name:n,description:d}]})); }}
+                  style={{ ...S.btn, background:'#1d4ed8', color:'#fff', fontSize:'11px', marginTop:'6px' }}>+ Add Ability</button>
+              </div>
+              <div style={S.card}>
+                <span style={S.lbl}>DESCRIPTION</span>
+                <textarea value={crewData.description} onChange={e => setCrewData(p=>({...p,description:e.target.value}))} placeholder="A short crew description&#8230;"
+                  style={{ width:'100%', height:'80px', background:'#0d1117', color:'#fff', border:'1px solid #374151', padding:'8px', fontFamily:'monospace', fontSize:'12px', resize:'none', boxSizing:'border-box' }} />
+                <div style={{ marginTop:'12px' }}>
+                  <span style={S.lbl}>UPGRADES &#8212; LAIR</span>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px' }}>
+                    {Object.entries(crewData.upgrades.lair).map(([key,val]) => (
+                      <label key={key} style={{ display:'flex', alignItems:'center', gap:'4px', fontSize:'11px', cursor:'pointer', textTransform:'capitalize' }}>
+                        <input type="checkbox" checked={val} onChange={e=>setCrewData(p=>({...p,upgrades:{...p.upgrades,lair:{...p.upgrades.lair,[key]:e.target.checked}}}))} />{key}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div style={S.card}>
+                <span style={S.lbl}>NOTES</span>
+                <textarea value={crewData.notes} onChange={e=>setCrewData(p=>({...p,notes:e.target.value}))} placeholder="Notes&#8230;"
+                  style={{ width:'100%', height:'200px', background:'#0d1117', color:'#fff', border:'1px solid #374151', padding:'8px', fontFamily:'monospace', fontSize:'12px', resize:'none', boxSizing:'border-box' }} />
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>{/* end content */}
+
+      {/* FIX 6: Level-Up Modal */}
+      {showLevelUp && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.88)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:200 }}>
+          <div style={{ background:'#111827', border:'2px solid #7c3aed', borderRadius:'8px', padding:'24px', width:'420px', maxWidth:'90vw' }}>
+            <div style={{ fontSize:'16px', fontWeight:'bold', color:'#a78bfa', marginBottom:'4px' }}>&#8679; LEVEL UP</div>
+            <div style={{ fontSize:'11px', color:'#9ca3af', marginBottom:'16px' }}>
+              Choose ONE path. A new Stand ability is automatically included either way.
+              {levelUpChoice === 'stat' && standStats[levelUpStat] === 3 && (
+                <div style={{ background:'#14532d', border:'1px solid #166534', borderRadius:'4px', padding:'4px 8px', marginTop:'6px', color:'#86efac' }}>
+                  &#9733; This stat will hit A-rank &#8212; ability auto-unlocked!
+                </div>
+              )}
+            </div>
+            <div style={{ display:'flex', gap:'8px', marginBottom:'16px' }}>
+              {[['stat','+1 Stand Coin Grade'],['dots','+2 Action Dots']].map(([val,label]) => (
+                <button key={val} onClick={() => setLevelUpChoice(val)}
+                  style={{ ...S.btn, flex:1, color:'#fff', background: levelUpChoice === val ? '#7c3aed' : '#374151', border: `2px solid ${levelUpChoice === val ? '#a78bfa' : 'transparent'}` }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {levelUpChoice === 'stat' && (
+              <div style={{ marginBottom:'16px' }}>
+                <span style={S.lbl}>Which stat to advance?</span>
+                <select value={levelUpStat} onChange={e => setLevelUpStat(e.target.value)} style={{ ...S.sel, width:'100%' }}>
+                  {Object.entries(standStats).map(([stat, val]) => (
+                    <option key={stat} value={stat} disabled={val >= 4}>
+                      {stat.toUpperCase()} &#8212; {GRADE_LETTERS[val]}{val < 4 ? ` \u2192 ${GRADE_LETTERS[val+1]}` : ' (MAX \u2014 A)'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {levelUpChoice === 'dots' && (
+              <div style={{ marginBottom:'16px' }}>
+                <span style={S.lbl}>Choose 2 actions (+1 dot each &#8212; can pick same twice)</span>
+                <div style={{ display:'flex', gap:'8px' }}>
+                  {[levelUpDot1, levelUpDot2].map((val, i) => (
+                    <select key={i} value={val}
+                      onChange={e => i === 0 ? setLevelUpDot1(e.target.value) : setLevelUpDot2(e.target.value)}
+                      style={{ ...S.sel, flex:1 }}>
+                      {Object.keys(actionRatings).map(a => (
+                        <option key={a} value={a} disabled={actionRatings[a] >= 4}>
+                          {a} ({actionRatings[a]}/4){actionRatings[a] >= 4 ? ' MAX' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div style={{ display:'flex', gap:'8px' }}>
+              <button onClick={confirmLevelUp}
+                style={{ ...S.btn, background:'#7c3aed', color:'#fff', flex:1, fontWeight:'bold' }}>
+                Confirm (&#8722;10 XP)
+              </button>
+              <button onClick={() => setShowLevelUp(false)}
+                style={{ ...S.btn, background:'#374151', color:'#fff' }}>
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
     </div>
   );
 };
 
 export default CharacterSheetWrapper;
-

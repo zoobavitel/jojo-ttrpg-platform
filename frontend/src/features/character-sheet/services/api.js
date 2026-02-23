@@ -103,6 +103,12 @@ export const characterAPI = {
     body: JSON.stringify(clockData),
   }),
   
+  // Spend 5 XP for +1 action dot (FIX 7: minor advance outside level-up)
+  spendXpForActionDot: (id, action) => apiRequest(`/characters/${id}/spend-xp-action-dot/`, {
+    method: 'POST',
+    body: JSON.stringify({ action }),
+  }),
+
   // Update progress clock
   updateProgressClock: (id, clockData) => apiRequest(`/characters/${id}/update-progress-clock/`, {
     method: 'POST',
@@ -230,6 +236,14 @@ export const authAPI = {
   },
 };
 
+// ── Grade conversion helpers ───────────────────────────────────────────────────
+// Backend stores stand stat values as grade letters (F/D/C/B/A/S).
+// Frontend uses integers 0–4 as indices into NUM_TO_GRADE = ['F','D','C','B','A'].
+// S-rank is GM-only and not selectable by players; if received from backend it is
+// clamped to 4 (A) since PCs max out at A.
+const GRADE_TO_NUM = { F: 0, D: 1, C: 2, B: 3, A: 4, S: 4 };
+const NUM_TO_GRADE = ['F', 'D', 'C', 'B', 'A'];
+
 // Data transformation helpers
 export const transformBackendToFrontend = (backendCharacter) => {
   return {
@@ -241,77 +255,74 @@ export const transformBackendToFrontend = (backendCharacter) => {
     look: backendCharacter.appearance || '',
     vice: backendCharacter.vice?.name || '',
     crew: backendCharacter.crew?.name || '',
-    
-    // Action ratings (convert from action_dots)
+
+    // Action ratings
     actionRatings: {
-      HUNT: backendCharacter.action_dots?.hunt || 0,
-      STUDY: backendCharacter.action_dots?.study || 0,
-      SURVEY: backendCharacter.action_dots?.survey || 0,
-      TINKER: backendCharacter.action_dots?.tinker || 0,
-      FINESSE: backendCharacter.action_dots?.finesse || 0,
-      PROWL: backendCharacter.action_dots?.prowl || 0,
+      HUNT:     backendCharacter.action_dots?.hunt     || 0,
+      STUDY:    backendCharacter.action_dots?.study    || 0,
+      SURVEY:   backendCharacter.action_dots?.survey   || 0,
+      TINKER:   backendCharacter.action_dots?.tinker   || 0,
+      FINESSE:  backendCharacter.action_dots?.finesse  || 0,
+      PROWL:    backendCharacter.action_dots?.prowl    || 0,
       SKIRMISH: backendCharacter.action_dots?.skirmish || 0,
-      WRECK: backendCharacter.action_dots?.wreck || 0,
-      BIZARRE: backendCharacter.action_dots?.attune || 0, // Note: backend uses 'attune'
-      COMMAND: backendCharacter.action_dots?.command || 0,
-      CONSORT: backendCharacter.action_dots?.consort || 0,
-      SWAY: backendCharacter.action_dots?.sway || 0,
+      WRECK:    backendCharacter.action_dots?.wreck    || 0,
+      BIZARRE:  backendCharacter.action_dots?.attune   || 0, // backend uses 'attune'
+      COMMAND:  backendCharacter.action_dots?.command  || 0,
+      CONSORT:  backendCharacter.action_dots?.consort  || 0,
+      SWAY:     backendCharacter.action_dots?.sway     || 0,
     },
-    
-    // Stand stats (convert from coin_stats)
+
+    // Stand stats — backend sends grade letters, frontend uses numeric 0–4
     standStats: {
-      power: backendCharacter.stand?.power || 1,
-      speed: backendCharacter.stand?.speed || 1,
-      range: backendCharacter.stand?.range || 1,
-      durability: backendCharacter.stand?.durability || 1,
-      precision: backendCharacter.stand?.precision || 1,
-      development: backendCharacter.stand?.development || 1,
+      power:       GRADE_TO_NUM[backendCharacter.stand?.power]       ?? 1,
+      speed:       GRADE_TO_NUM[backendCharacter.stand?.speed]       ?? 1,
+      range:       GRADE_TO_NUM[backendCharacter.stand?.range]       ?? 1,
+      durability:  GRADE_TO_NUM[backendCharacter.stand?.durability]  ?? 1,
+      precision:   GRADE_TO_NUM[backendCharacter.stand?.precision]   ?? 1,
+      development: GRADE_TO_NUM[backendCharacter.stand?.development] ?? 1,
     },
-    
-    // Stress and trauma
-    stress: Array(backendCharacter.stress || 9).fill(false),
-    trauma: backendCharacter.trauma || [],
-    
-    // Armor
-    armor: {
-      armor: backendCharacter.light_armor_used || false,
-      heavy: backendCharacter.heavy_armor_used || false,
-      special: false, // Not in backend model
+
+    // Stress as filled count (FIX 4: max derived from DUR_TABLE on the component side)
+    stressFilled: backendCharacter.stress || 0,
+    trauma: backendCharacter.trauma || {
+      COLD: false, HAUNTED: false, OBSESSED: false, PARANOID: false,
+      RECKLESS: false, SOFT: false, UNSTABLE: false, VICIOUS: false,
     },
-    
+
+    // Armor charges (FIX 4: count of used charges, not boolean flags)
+    regularArmorUsed: backendCharacter.regular_armor_used || 0,
+    specialArmorUsed: backendCharacter.special_armor_used || false,
+
     // Harm entries
-    harmEntries: {
-      level3: backendCharacter.harm_level3_used ? [backendCharacter.harm_level3_name || ''] : [''],
-      level2: backendCharacter.harm_level2_used ? [backendCharacter.harm_level2_name || ''] : [''],
-      level1: backendCharacter.harm_level1_used ? [backendCharacter.harm_level1_name || ''] : [''],
+    harm: {
+      level3: [backendCharacter.harm_level3_name || ''],
+      level2: [backendCharacter.harm_level2_name || '', ''],
+      level1: [backendCharacter.harm_level1_name || '', ''],
     },
-    
-    // Coin and stash
-    coin: Array(4).fill(false), // Not in backend model
-    stash: Array(40).fill(false), // Not in backend model
-    
+
+    // Coin (pocket) and stash
+    coinFilled: backendCharacter.coin || 0,
+    stash: backendCharacter.stash || Array(40).fill(false),
+
     // Healing clock
     healingClock: backendCharacter.healing_clock_filled || 0,
-    
+
     // XP tracks
-    xp: backendCharacter.xp_clocks || {
-      insight: 0, prowess: 0, resolve: 0, heritage: 0, playbook: 0
-    },
-    
+    xp: backendCharacter.xp_clocks || { insight: 0, prowess: 0, resolve: 0, heritage: 0, playbook: 0 },
+
     // Abilities
     abilities: [
       ...(backendCharacter.standard_ability_details || []),
-      ...(backendCharacter.hamon_ability_details || []),
-      ...(backendCharacter.spin_ability_details || []),
+      ...(backendCharacter.hamon_ability_details    || []),
+      ...(backendCharacter.spin_ability_details     || []),
     ],
-    
+
     // Progress clocks
     clocks: backendCharacter.progress_clocks || [],
-    
-    // Additional backend fields
+
+    // Passthrough fields
+    playbook: backendCharacter.playbook || 'Stand',
     campaign: backendCharacter.campaign,
-    crew: backendCharacter.crew,
-    playbook: backendCharacter.playbook,
     level: backendCharacter.level,
     loadout: backendCharacter.loadout,
     inventory: backendCharacter.inventory || [],
@@ -320,65 +331,85 @@ export const transformBackendToFrontend = (backendCharacter) => {
 };
 
 export const transformFrontendToBackend = (frontendCharacter) => {
+  const ratings = frontendCharacter.actionRatings || {};
+  const stats   = frontendCharacter.standStats    || {};
+  const harmData= frontendCharacter.harm          || { level3: [''], level2: ['', ''], level1: ['', ''] };
   return {
-    true_name: frontendCharacter.name,
-    stand_name: frontendCharacter.standName,
-    heritage: frontendCharacter.heritage,
-    background_note: frontendCharacter.background,
-    appearance: frontendCharacter.look,
-    vice: frontendCharacter.vice,
-    
+    true_name:       frontendCharacter.name       || '',
+    stand_name:      frontendCharacter.standName  || '',
+    heritage:        frontendCharacter.heritage   || 'Human',
+    background_note: frontendCharacter.background || '',
+    appearance:      frontendCharacter.look       || '',
+    vice:            frontendCharacter.vice       || '',
+
     // Action dots
     action_dots: {
-      hunt: frontendCharacter.actionRatings.HUNT,
-      study: frontendCharacter.actionRatings.STUDY,
-      survey: frontendCharacter.actionRatings.SURVEY,
-      tinker: frontendCharacter.actionRatings.TINKER,
-      finesse: frontendCharacter.actionRatings.FINESSE,
-      prowl: frontendCharacter.actionRatings.PROWL,
-      skirmish: frontendCharacter.actionRatings.SKIRMISH,
-      wreck: frontendCharacter.actionRatings.WRECK,
-      attune: frontendCharacter.actionRatings.BIZARRE, // Note: backend uses 'attune'
-      command: frontendCharacter.actionRatings.COMMAND,
-      consort: frontendCharacter.actionRatings.CONSORT,
-      sway: frontendCharacter.actionRatings.SWAY,
+      hunt:     ratings.HUNT     || 0,
+      study:    ratings.STUDY    || 0,
+      survey:   ratings.SURVEY   || 0,
+      tinker:   ratings.TINKER   || 0,
+      finesse:  ratings.FINESSE  || 0,
+      prowl:    ratings.PROWL    || 0,
+      skirmish: ratings.SKIRMISH || 0,
+      wreck:    ratings.WRECK    || 0,
+      attune:   ratings.BIZARRE  || 0, // backend uses 'attune'
+      command:  ratings.COMMAND  || 0,
+      consort:  ratings.CONSORT  || 0,
+      sway:     ratings.SWAY     || 0,
     },
-    
-    // Stand data
+
+    // Stand stats — convert numeric 0–4 back to grade letters for backend
     stand: {
-      name: frontendCharacter.standName,
-      power: frontendCharacter.standStats.power,
-      speed: frontendCharacter.standStats.speed,
-      range: frontendCharacter.standStats.range,
-      durability: frontendCharacter.standStats.durability,
-      precision: frontendCharacter.standStats.precision,
-      development: frontendCharacter.standStats.development,
+      name:        frontendCharacter.standName || '',
+      power:       NUM_TO_GRADE[stats.power]       || 'D',
+      speed:       NUM_TO_GRADE[stats.speed]       || 'D',
+      range:       NUM_TO_GRADE[stats.range]       || 'D',
+      durability:  NUM_TO_GRADE[stats.durability]  || 'D',
+      precision:   NUM_TO_GRADE[stats.precision]   || 'D',
+      development: NUM_TO_GRADE[stats.development] || 'D',
     },
-    
-    // Stress and trauma
-    stress: frontendCharacter.stress.filter(Boolean).length,
+
+    // Stress as count
+    stress: frontendCharacter.stressFilled || 0,
     trauma: frontendCharacter.trauma,
-    
+
     // Armor
-    light_armor_used: frontendCharacter.armor.armor,
-    heavy_armor_used: frontendCharacter.armor.heavy,
-    
+    regular_armor_used: frontendCharacter.regularArmorUsed || 0,
+    special_armor_used: frontendCharacter.specialArmorUsed || false,
+
     // Harm
-    harm_level3_used: frontendCharacter.harmEntries.level3[0] !== '',
-    harm_level3_name: frontendCharacter.harmEntries.level3[0] || '',
-    harm_level2_used: frontendCharacter.harmEntries.level2[0] !== '',
-    harm_level2_name: frontendCharacter.harmEntries.level2[0] || '',
-    harm_level1_used: frontendCharacter.harmEntries.level1[0] !== '',
-    harm_level1_name: frontendCharacter.harmEntries.level1[0] || '',
-    
-    // XP clocks
-    xp_clocks: frontendCharacter.xp,
-    
-    // Progress clocks
-    progress_clocks: frontendCharacter.clocks,
-    
-    // Additional fields
-    inventory: frontendCharacter.inventory,
-    reputation_status: frontendCharacter.reputation_status,
+    harm_level3_name: harmData.level3[0] || '',
+    harm_level3_used: !!(harmData.level3[0]),
+    harm_level2_name: harmData.level2[0] || '',
+    harm_level2_used: !!(harmData.level2[0]),
+    harm_level1_name: harmData.level1[0] || '',
+    harm_level1_used: !!(harmData.level1[0]),
+
+    // Coin and stash
+    coin:  frontendCharacter.coinFilled || 0,
+    stash: frontendCharacter.stash || [],
+
+    // Healing clock
+    healing_clock_filled: frontendCharacter.healingClock || 0,
+
+    // XP tracks
+    xp_clocks: frontendCharacter.xp || { insight:0, prowess:0, resolve:0, heritage:0, playbook:0 },
+
+    // Progress clocks and abilities
+    progress_clocks: frontendCharacter.clocks || [],
+
+    // Passthrough
+    playbook: frontendCharacter.playbook || 'Stand',
+    inventory: frontendCharacter.inventory || [],
+    reputation_status: frontendCharacter.reputation_status || {},
   };
+};
+
+// NPC API functions
+export const npcAPI = {
+  getNPCs:     ()          => apiRequest('/npcs/'),
+  getNPC:      (id)        => apiRequest(`/npcs/${id}/`),
+  createNPC:   (data)      => apiRequest('/npcs/', { method: 'POST', body: JSON.stringify(data) }),
+  updateNPC:   (id, data)  => apiRequest(`/npcs/${id}/`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteNPC:   (id)        => apiRequest(`/npcs/${id}/`, { method: 'DELETE' }),
 }; 
