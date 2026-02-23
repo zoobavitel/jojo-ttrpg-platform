@@ -2064,3 +2064,29 @@ django.db.utils.OperationalError: no such column: characters_campaign.wanted_sta
 [INFO] 2025-07-21 22:25:29,703 django.utils.autoreload - Watching for file changes with StatReloader
 [INFO] 2025-07-21 22:26:19,938 django.utils.autoreload - Watching for file changes with StatReloader
 [INFO] 2025-07-21 22:26:53,357 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-23 03:18:50,170 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2026-02-23 03:19:52,313 django.request - Not Found: /api/npcs/1/apply-effect/
+[WARNING] 2026-02-23 03:19:52,504 django.request - Not Found: /api/npcs/1/apply-effect/
+[WARNING] 2026-02-23 03:19:52,696 django.request - Not Found: /api/npcs/1/apply-effect/
+[WARNING] 2026-02-23 03:19:52,889 django.request - Not Found: /api/npcs/1/apply-effect/
+[INFO] 2026-02-23 03:20:47,902 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/views/npc_views.py changed, reloading.
+[INFO] 2026-02-23 03:20:48,106 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2026-02-23 03:21:19,764 django.request - Bad Request: /api/accounts/login/
+[WARNING] 2026-02-23 03:21:30,041 django.request - Bad Request: /api/accounts/login/
+[WARNING] 2026-02-23 03:21:41,480 django.request - Bad Request: /api/accounts/login/
+[WARNING] 2026-02-23 03:22:07,978 django.request - Bad Request: /api/accounts/login/
+[WARNING] 2026-02-23 03:24:54,563 django.request - Bad Request: /api/accounts/login/
+[WARNING] 2026-02-23 03:25:05,114 django.request - Bad Request: /api/accounts/login/
+[WARNING] 2026-02-23 03:25:12,063 django.request - Bad Request: /api/accounts/login/
+[WARNING] 2026-02-23 03:26:01,288 django.request - Not Found: /api//characters/
+[WARNING] 2026-02-23 03:26:01,328 django.request - Not Found: /api//characters/
+[WARNING] 2026-02-23 03:26:28,545 django.request - Not Found: /api//characters/
+[WARNING] 2026-02-23 03:26:29,203 django.request - Not Found: /api//characters/
+[WARNING] 2026-02-23 03:26:38,041 django.request - Not Found: /api//characters/
+[WARNING] 2026-02-23 03:26:38,047 django.request - Not Found: /api//characters/
+[WARNING] 2026-02-23 03:27:51,750 django.request - Not Found: /api//characters/
+[WARNING] 2026-02-23 03:27:51,755 django.request - Not Found: /api//characters/
+[WARNING] 2026-02-23 03:27:53,669 django.request - Not Found: /api//characters/
+[WARNING] 2026-02-23 03:27:53,674 django.request - Not Found: /api//characters/
+[WARNING] 2026-02-23 03:27:54,509 django.request - Not Found: /api//characters/
+[WARNING] 2026-02-23 03:27:54,555 django.request - Not Found: /api//characters/
