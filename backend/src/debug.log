@@ -2090,3 +2090,12 @@ django.db.utils.OperationalError: no such column: characters_campaign.wanted_sta
 [WARNING] 2026-02-23 03:27:53,674 django.request - Not Found: /api//characters/
 [WARNING] 2026-02-23 03:27:54,509 django.request - Not Found: /api//characters/
 [WARNING] 2026-02-23 03:27:54,555 django.request - Not Found: /api//characters/
+[INFO] 2026-02-23 13:01:39,610 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-23 13:09:11,228 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/views/__init__.py changed, reloading.
+[INFO] 2026-02-23 13:09:11,470 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-23 13:09:13,586 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/views/__init__.py changed, reloading.
+[INFO] 2026-02-23 13:09:13,813 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-23 13:09:15,923 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/app/urls.py changed, reloading.
+[INFO] 2026-02-23 13:09:16,148 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-23 13:09:17,260 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/app/urls.py changed, reloading.
+[INFO] 2026-02-23 13:09:17,489 django.utils.autoreload - Watching for file changes with StatReloader
