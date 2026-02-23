@@ -1,27 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus } from 'lucide-react';
+import { PC_STAT_DESC, DEV_SESSION_XP, DUR_TABLE, GRADE_LETTERS } from '../data/data.js';
 
-// ── Lookup tables ─────────────────────────────────────────────────────────────
-
-// Stand stat numeric value → grade letter (0=F … 4=A)
-const GRADE_LETTERS = ['F', 'D', 'C', 'B', 'A'];
-
-// Durability grade → { charges (armor boxes), stressMax }
-const DUR_TABLE = {
-  S: { charges: 5, stressMax: 13 },
-  A: { charges: 4, stressMax: 12 },
-  B: { charges: 4, stressMax: 11 },
-  C: { charges: 3, stressMax: 10 },
-  D: { charges: 2, stressMax:  9 },
-  F: { charges: 1, stressMax:  8 },
+// computeLevel: derives character level from Stand Coin points and action dots spent.
+// Formula matches backend: level = 1 + floor(totalXpSpent / 10)
+// where totalXpSpent = (standCoinPoints × 10) + (actionDots × 5) − 95
+// (95 = creation baseline: 6 stat pts × 10 + 7 action dots × 5 = 95)
+const computeLevel = (standStats, actionRatings) => {
+  const standPts  = Object.values(standStats).reduce((s, v) => s + v, 0);
+  const actionDots = Object.values(actionRatings).reduce((s, v) => s + v, 0);
+  const xpSpent = (standPts * 10) + (actionDots * 5) - 95;
+  return 1 + Math.max(0, Math.floor(xpSpent / 10));
 };
-
-// Development grade → session XP bonus
-const DEV_SESSION_XP = { S: 5, A: 4, B: 3, C: 2, D: 1, F: 0 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-// Full Character Sheet Component (preserving ALL original functionality)
 const CharacterSheetWrapper = ({ character, onClose, onSave, onCreateNew, onSwitchCharacter, allCharacters = [] }) => {
   const [activeMode, setActiveMode] = useState('CHARACTER MODE');
   const [navOpen, setNavOpen] = useState(false);
