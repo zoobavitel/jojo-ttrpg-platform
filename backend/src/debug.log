@@ -2099,3 +2099,17 @@ django.db.utils.OperationalError: no such column: characters_campaign.wanted_sta
 [INFO] 2026-02-23 13:09:16,148 django.utils.autoreload - Watching for file changes with StatReloader
 [INFO] 2026-02-23 13:09:17,260 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/app/urls.py changed, reloading.
 [INFO] 2026-02-23 13:09:17,489 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2026-02-23 18:34:47,174 django.request - Not Found: /favicon.ico
+[INFO] 2026-02-23 19:13:02,353 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/views/auth_views.py changed, reloading.
+[INFO] 2026-02-23 19:13:02,617 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-23 19:13:04,722 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/views/__init__.py changed, reloading.
+[INFO] 2026-02-23 19:13:04,942 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-23 19:13:13,088 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/views/__init__.py changed, reloading.
+[INFO] 2026-02-23 19:13:13,303 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-23 19:13:14,397 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/app/urls.py changed, reloading.
+[INFO] 2026-02-23 19:13:14,591 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-23 19:13:15,672 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/app/urls.py changed, reloading.
+[INFO] 2026-02-23 19:13:15,890 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-23 19:13:52,191 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/views/auth_views.py changed, reloading.
+[INFO] 2026-02-23 19:13:52,422 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2026-02-23 19:14:06,474 django.request - Bad Request: /api/accounts/login/
