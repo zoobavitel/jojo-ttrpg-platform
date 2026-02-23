@@ -1,6 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus } from 'lucide-react';
 
+// ── Lookup tables ─────────────────────────────────────────────────────────────
+
+// Stand stat numeric value → grade letter (0=F … 4=A)
+const GRADE_LETTERS = ['F', 'D', 'C', 'B', 'A'];
+
+// Durability grade → { charges (armor boxes), stressMax }
+const DUR_TABLE = {
+  S: { charges: 5, stressMax: 13 },
+  A: { charges: 4, stressMax: 12 },
+  B: { charges: 4, stressMax: 11 },
+  C: { charges: 3, stressMax: 10 },
+  D: { charges: 2, stressMax:  9 },
+  F: { charges: 1, stressMax:  8 },
+};
+
+// Development grade → session XP bonus
+const DEV_SESSION_XP = { S: 5, A: 4, B: 3, C: 2, D: 1, F: 0 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Full Character Sheet Component (preserving ALL original functionality)
 const CharacterSheetWrapper = ({ character, onClose, onSave, onCreateNew, onSwitchCharacter, allCharacters = [] }) => {
   const [activeMode, setActiveMode] = useState('CHARACTER MODE');
@@ -130,7 +150,23 @@ const CharacterSheetWrapper = ({ character, onClose, onSave, onCreateNew, onSwit
   const [standStats, setStandStats] = useState(character?.standStats || {
     power: 1, speed: 1, range: 1, durability: 1, precision: 1, development: 1
   });
-  
+
+  // ── Creation mode: enforces 7-total / max-2-per-action dot caps ──────────
+  const [isCreation, setIsCreation] = useState(!character?.id);
+
+  // ── Level-up modal ────────────────────────────────────────────────────────
+  const [levelUpOpen, setLevelUpOpen] = useState(false);
+  const [levelUpMode, setLevelUpMode] = useState('stat'); // 'stat' | 'dots'
+  const [levelUpStat, setLevelUpStat] = useState('power');
+
+  // ── Minor advance (5 XP → +1 dot) ────────────────────────────────────────
+  const [minorAdvanceAction, setMinorAdvanceAction] = useState('HUNT');
+
+  // ── Armor charge boxes (count driven by Durability grade) ─────────────────
+  const [armorCharges, setArmorCharges] = useState(
+    () => Array(DUR_TABLE[GRADE_LETTERS[character?.standStats?.durability ?? 1]]?.charges ?? 3).fill(false)
+  );
+
   const [diceResult, setDiceResult] = useState(null);
   const [customClocks, setCustomClocks] = useState(character?.clocks || []);
   
