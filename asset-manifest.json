@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/jojo-ttrpg-platform/static/css/main.bec31763.css",
+    "main.js": "/jojo-ttrpg-platform/static/js/main.df51340e.js",
+    "index.html": "/jojo-ttrpg-platform/index.html",
+    "main.bec31763.css.map": "/jojo-ttrpg-platform/static/css/main.bec31763.css.map",
+    "main.df51340e.js.map": "/jojo-ttrpg-platform/static/js/main.df51340e.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.bec31763.css",
+    "static/js/main.df51340e.js"
+  ]
+}
