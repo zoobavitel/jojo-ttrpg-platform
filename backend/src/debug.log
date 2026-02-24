@@ -2113,3 +2113,47 @@ django.db.utils.OperationalError: no such column: characters_campaign.wanted_sta
 [INFO] 2026-02-23 19:13:52,191 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/views/auth_views.py changed, reloading.
 [INFO] 2026-02-23 19:13:52,422 django.utils.autoreload - Watching for file changes with StatReloader
 [WARNING] 2026-02-23 19:14:06,474 django.request - Bad Request: /api/accounts/login/
+[WARNING] 2026-02-24 00:21:27,246 django.request - Bad Request: /api/accounts/login/
+[WARNING] 2026-02-24 00:24:32,878 django.request - Not Found: /api/characters/1771892672866/
+[WARNING] 2026-02-24 00:26:33,762 django.request - Unsupported Media Type: /api/characters/
+[INFO] 2026-02-24 00:27:18,136 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/views/character_views.py changed, reloading.
+[INFO] 2026-02-24 00:27:18,370 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-24 00:27:19,462 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/views/character_views.py changed, reloading.
+[INFO] 2026-02-24 00:27:19,674 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2026-02-24 00:27:47,266 django.request - Bad Request: /api/characters/
+[ERROR] 2026-02-24 00:29:19,522 django.request - Internal Server Error: /api/characters/
+Traceback (most recent call last):
+  File "/home/z/git/jojo-ttrpg-platform/.venv/lib/python3.14/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/z/git/jojo-ttrpg-platform/.venv/lib/python3.14/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/z/git/jojo-ttrpg-platform/.venv/lib/python3.14/site-packages/django/views/decorators/csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "/home/z/git/jojo-ttrpg-platform/.venv/lib/python3.14/site-packages/rest_framework/viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/z/git/jojo-ttrpg-platform/.venv/lib/python3.14/site-packages/rest_framework/views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "/home/z/git/jojo-ttrpg-platform/.venv/lib/python3.14/site-packages/rest_framework/views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/home/z/git/jojo-ttrpg-platform/.venv/lib/python3.14/site-packages/rest_framework/views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "/home/z/git/jojo-ttrpg-platform/.venv/lib/python3.14/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/home/z/git/jojo-ttrpg-platform/.venv/lib/python3.14/site-packages/rest_framework/mixins.py", line 18, in create
+    serializer.is_valid(raise_exception=True)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/z/git/jojo-ttrpg-platform/.venv/lib/python3.14/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/home/z/git/jojo-ttrpg-platform/.venv/lib/python3.14/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+  File "/home/z/git/jojo-ttrpg-platform/backend/src/characters/serializers.py", line 302, in validate
+    total_dots = sum(val for group in action_dots.values() for val in group.values())
+  File "/home/z/git/jojo-ttrpg-platform/backend/src/characters/serializers.py", line 302, in <genexpr>
+    total_dots = sum(val for group in action_dots.values() for val in group.values())
+                                                                      ^^^^^^^^^^^^
+AttributeError: 'int' object has no attribute 'values'
+[INFO] 2026-02-24 00:29:44,687 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/serializers.py changed, reloading.
+[INFO] 2026-02-24 00:29:44,896 django.utils.autoreload - Watching for file changes with StatReloader
