@@ -2158,3 +2158,4 @@ AttributeError: 'int' object has no attribute 'values'
 [INFO] 2026-02-24 00:29:44,687 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/serializers.py changed, reloading.
 [INFO] 2026-02-24 00:29:44,896 django.utils.autoreload - Watching for file changes with StatReloader
 [INFO] 2026-02-24 01:05:25,535 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-24 01:18:12,244 django.utils.autoreload - Watching for file changes with StatReloader
