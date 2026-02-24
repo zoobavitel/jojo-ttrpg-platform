@@ -2170,3 +2170,12 @@ AttributeError: 'int' object has no attribute 'values'
 [INFO] 2026-02-24 22:59:57,554 django.utils.autoreload - Watching for file changes with StatReloader
 [INFO] 2026-02-24 23:04:40,588 django.utils.autoreload - Watching for file changes with StatReloader
 [INFO] 2026-02-24 23:07:08,069 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-24 23:14:14,824 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-24 23:14:57,808 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2026-02-24 23:15:55,647 django.request - Bad Request: /api/campaigns/
+[WARNING] 2026-02-24 23:16:20,200 django.request - Bad Request: /api/campaigns/
+[WARNING] 2026-02-24 23:21:21,678 django.request - Bad Request: /api/campaigns/
+[INFO] 2026-02-24 23:21:57,435 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-24 23:23:10,962 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/serializers.py changed, reloading.
+[INFO] 2026-02-24 23:23:11,175 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-24 23:24:29,675 django.utils.autoreload - Watching for file changes with StatReloader
