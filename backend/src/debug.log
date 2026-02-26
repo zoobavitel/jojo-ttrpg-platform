@@ -2298,3 +2298,6 @@ django.db.utils.OperationalError: no such column: characters_npc.image
 [INFO] 2026-02-26 06:52:14,045 django.utils.autoreload - Watching for file changes with StatReloader
 [WARNING] 2026-02-26 07:15:13,128 django.request - Bad Request: /api/characters/
 [INFO] 2026-02-26 07:22:19,614 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2026-02-26 20:07:02,887 django.request - Bad Request: /api/npcs/
+[WARNING] 2026-02-26 20:07:12,471 django.request - Bad Request: /api/npcs/
+[INFO] 2026-02-26 20:08:42,330 django.utils.autoreload - Watching for file changes with StatReloader
