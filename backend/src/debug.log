@@ -2296,3 +2296,5 @@ django.db.utils.OperationalError: no such column: characters_npc.image
 [INFO] 2026-02-26 06:47:57,284 django.utils.autoreload - Watching for file changes with StatReloader
 [INFO] 2026-02-26 06:52:13,742 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/models.py changed, reloading.
 [INFO] 2026-02-26 06:52:14,045 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2026-02-26 07:15:13,128 django.request - Bad Request: /api/characters/
+[INFO] 2026-02-26 07:22:19,614 django.utils.autoreload - Watching for file changes with StatReloader
