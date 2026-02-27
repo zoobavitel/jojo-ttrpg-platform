@@ -2331,3 +2331,4 @@ django.db.utils.OperationalError: no such column: characters_npc.image
 [WARNING] 2026-02-27 05:03:38,935 django.request - Bad Request: /api/npcs/1/apply-effect/
 [WARNING] 2026-02-27 05:03:39,129 django.request - Not Found: /api/npcs/1/apply-effect/
 [INFO] 2026-02-27 05:04:24,026 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-27 06:23:22,066 django.utils.autoreload - Watching for file changes with StatReloader
