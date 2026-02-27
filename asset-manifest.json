@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/jojo-ttrpg-platform/static/css/main.4c746642.css",
-    "main.js": "/jojo-ttrpg-platform/static/js/main.f54381b9.js",
+    "main.css": "/jojo-ttrpg-platform/static/css/main.acd0053e.css",
+    "main.js": "/jojo-ttrpg-platform/static/js/main.6ac8e68b.js",
     "index.html": "/jojo-ttrpg-platform/index.html",
-    "main.4c746642.css.map": "/jojo-ttrpg-platform/static/css/main.4c746642.css.map",
-    "main.f54381b9.js.map": "/jojo-ttrpg-platform/static/js/main.f54381b9.js.map"
+    "main.acd0053e.css.map": "/jojo-ttrpg-platform/static/css/main.acd0053e.css.map",
+    "main.6ac8e68b.js.map": "/jojo-ttrpg-platform/static/js/main.6ac8e68b.js.map"
   },
   "entrypoints": [
-    "static/css/main.4c746642.css",
-    "static/js/main.f54381b9.js"
+    "static/css/main.acd0053e.css",
+    "static/js/main.6ac8e68b.js"
   ]
 }
