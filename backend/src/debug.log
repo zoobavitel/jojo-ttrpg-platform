@@ -2312,3 +2312,22 @@ django.db.utils.OperationalError: no such column: characters_npc.image
 [INFO] 2026-02-27 02:59:35,770 django.utils.autoreload - Watching for file changes with StatReloader
 [INFO] 2026-02-27 03:21:43,775 django.utils.autoreload - Watching for file changes with StatReloader
 [INFO] 2026-02-27 03:25:13,191 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2026-02-27 05:03:34,873 django.request - Unsupported Media Type: /api/crews/1/
+[WARNING] 2026-02-27 05:03:35,165 django.request - Unsupported Media Type: /api/crews/1/propose-name/
+[WARNING] 2026-02-27 05:03:35,166 django.request - Unsupported Media Type: /api/crews/1/
+[WARNING] 2026-02-27 05:03:35,458 django.request - Unsupported Media Type: /api/crews/1/propose-name/
+[WARNING] 2026-02-27 05:03:35,558 django.request - Not Found: /api/crews/1/approve-name/
+[WARNING] 2026-02-27 05:03:35,941 django.request - Not Found: /api/crews/1/propose-name/
+[WARNING] 2026-02-27 05:03:36,322 django.request - Unsupported Media Type: /api/crews/1/propose-name/
+[WARNING] 2026-02-27 05:03:36,324 django.request - Forbidden: /api/crews/1/approve-name/
+[WARNING] 2026-02-27 05:03:36,609 django.request - Unsupported Media Type: /api/crews/1/propose-name/
+[WARNING] 2026-02-27 05:03:36,895 django.request - Unsupported Media Type: /api/crews/1/propose-name/
+[WARNING] 2026-02-27 05:03:36,897 django.request - Forbidden: /api/crews/1/approve-name/
+[WARNING] 2026-02-27 05:03:37,183 django.request - Forbidden: /api/crews/1/approve-name/
+[WARNING] 2026-02-27 05:03:37,482 django.request - Unsupported Media Type: /api/crews/1/propose-name/
+[WARNING] 2026-02-27 05:03:37,483 django.request - Forbidden: /api/crews/1/approve-name/
+[WARNING] 2026-02-27 05:03:37,767 django.request - Unsupported Media Type: /api/crews/1/
+[WARNING] 2026-02-27 05:03:38,051 django.request - Unsupported Media Type: /api/crews/1/propose-name/
+[WARNING] 2026-02-27 05:03:38,935 django.request - Bad Request: /api/npcs/1/apply-effect/
+[WARNING] 2026-02-27 05:03:39,129 django.request - Not Found: /api/npcs/1/apply-effect/
+[INFO] 2026-02-27 05:04:24,026 django.utils.autoreload - Watching for file changes with StatReloader
