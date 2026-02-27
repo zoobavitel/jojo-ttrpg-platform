@@ -2446,3 +2446,17 @@ Traceback (most recent call last):
            ^^^^^^^^^^^^^^^^^^^^^^^^^
 AssertionError: It is redundant to specify `source='xp_entries'` on field 'ListSerializer' in serializer 'SessionRecordsSerializer', because it is the same as the field name. Remove the `source` keyword argument.
 [INFO] 2026-02-27 08:03:31,198 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-27 21:37:14,264 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-27 21:38:21,452 django.utils.autoreload - Watching for file changes with StatReloader
+[WARNING] 2026-02-27 21:40:52,043 django.request - Bad Request: /api/characters/
+[INFO] 2026-02-27 21:43:34,887 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-27 21:49:04,825 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-27 21:49:30,786 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-27 21:52:58,069 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/models.py changed, reloading.
+[INFO] 2026-02-27 21:52:58,356 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-27 21:53:13,536 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/serializers.py changed, reloading.
+[INFO] 2026-02-27 21:53:13,730 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-27 21:53:14,786 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/serializers.py changed, reloading.
+[INFO] 2026-02-27 21:53:14,992 django.utils.autoreload - Watching for file changes with StatReloader
+[INFO] 2026-02-27 21:53:21,077 django.utils.autoreload - /home/z/git/jojo-ttrpg-platform/backend/src/characters/serializers.py changed, reloading.
+[INFO] 2026-02-27 21:53:21,268 django.utils.autoreload - Watching for file changes with StatReloader
